@@ -25,7 +25,6 @@ The simulation includes:
 - **Gravity** (constant acceleration)  
 - **Atmospheric density model** (exponential decay with altitude)  
 - **Aerodynamic drag**  
-  - \( F_d = \frac{1}{2} \rho v^2 C_d A \)
 - **Mass reduction due to fuel burn**
 - **Thrust-to-mass dependent acceleration**
 
