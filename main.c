@@ -7,18 +7,32 @@
 typedef struct
 {
     double dryMass;
-    double massFlow;
+    double massStream;
     double crossSectionArea;
     double dragCoefficient;
+    double thrust0;
 }Constants_t;
 
 typedef struct
 {
     double height;
     double vel;
-    double thrust;
     double mass;
 }State_t;
+
+typedef struct
+{
+    double dh;
+    double dv;
+    double dm;
+}Derivatives_t;
+
+double calc_thrust(const Constants_t *constants, const State_t *state){
+    if(state->mass - constants->dryMass <= 0){
+        return 0.0;
+    }
+    return constants->thrust0;
+}
 
 double calc_density(double height){ //kg/m^3
     double seaDensity = 1.225;
@@ -33,45 +47,39 @@ double calc_aerodrag(const Constants_t *constants,const State_t *state){ // newt
     return v < 0 ? -aeroDrag : aeroDrag;
 }
 
-void update_mass(const Constants_t *constants,State_t *state, double dt){
-    if(state->mass <= constants->dryMass){
-        state->mass = constants->dryMass;
-        state->thrust = 0;
-        return;
-    }
-    state->mass -= constants-> massFlow * dt;
-}
-
 double calc_acceleration(const Constants_t *constants,const State_t *state){ // m/s^2
     double aeroDrag = calc_aerodrag(constants, state);
-    return (state->thrust / state->mass) - (aeroDrag / state->mass) - EARTH_GRAV;
+    double thrust = calc_thrust(constants,state);
+    return (thrust / state->mass) - (aeroDrag / state->mass) - EARTH_GRAV;
 }
 
-void update_velocity(const Constants_t *constants, State_t *state, double dt){
-    double acceleration = calc_acceleration(constants, state);
-    state->vel += acceleration * dt;
+Derivatives_t calc_derivatives(const Constants_t *constants, const State_t *state){
+    Derivatives_t der;
+    der.dh = state->vel;
+    der.dv = calc_acceleration(constants,state);
+    der.dm = (state->mass - constants->dryMass) <= 0 ? 0 : -constants->massStream;
+    return der;
 }
 
-void update_height(State_t *state, double dt){
-    state->height += state->vel * dt;
-    if(state->height < 0.0){
-        state->height = 0.0;    // earthContact approximated
-    }
+void euler_step(const Constants_t *constants, State_t *state, double dt){
+   Derivatives_t der = calc_derivatives(constants, state);
+   state->height += der.dh * dt;
+   state->vel += der.dv * dt;
+   state->mass += der.dm * dt;
+   if(state->height < 0.0){
+    state->height = 0.0;
+    state->vel = 0.0;    
 }
-
-void update_physics(const Constants_t *constants, State_t *state, double dt){
-    update_mass(constants, state ,dt);
-    update_velocity(constants, state,dt);
-    update_height(state, dt);;
+   if(state->mass < constants->dryMass){state->mass = constants->dryMass;}
 }
 
 int init_simulation(Constants_t *constants, State_t *state){
     if(!constants || !state){return 1;}
     constants->dryMass = 25000.0; // kg
-    constants->massFlow = 12500.0; // kg/s
+    constants->massStream = 12500.0; // kg/s
     constants->crossSectionArea = 10.0; //m^2
     constants->dragCoefficient = 0.5;
-    state->thrust = 7607000.0; // newton
+    constants->thrust0 = 7607000.0; // newton
     state->vel = 0.0; // m/s
     state->mass = 433000.0; // kg
     state->height = 0.0; // m
@@ -89,6 +97,22 @@ void print_flightInfo(const State_t *state, double cTime, double a, double remFu
         aeroDrag,
         density);
 }
+void update_statistics_printInfo(const Constants_t *constants, const State_t *state, double *maxH, double *maxVel,
+                                                double *lowestD, double *lowestDAt, double cTime){
+        double density = calc_density(state->height);
+        double acceleration = calc_acceleration(constants, state);
+        double aeroDrag = calc_aerodrag(constants, state);
+        double remainingFuel = state->mass - constants->dryMass;
+
+        if(state->height > *maxH){*maxH = state->height;}
+        if(fabs(state->vel) > *maxVel){*maxVel = fabs(state->vel);}
+        if(remainingFuel <= 0){remainingFuel = 0;}
+        if(density <= *lowestD && state->height != 0.0){
+            *lowestD = density;
+            *lowestDAt = state->height;
+        }
+        print_flightInfo(state, cTime, acceleration, remainingFuel, aeroDrag, density);
+}
 
 int simulate_flight(double time_limit){
     Constants_t constants;
@@ -105,23 +129,8 @@ int simulate_flight(double time_limit){
 
     while (cTime < time_limit)
     {
-        update_physics(&constants, &state, dTime);
-
-        if(state.height > maxHeight){maxHeight = state.height;}
-        if(fabs(state.vel) > maxVelocity){maxVelocity = fabs(state.vel);}
-
-        double density = calc_density(state.height);
-        double acceleration = calc_acceleration(&constants, &state);
-        double aeroDrag = calc_aerodrag(&constants, &state);
-        double remainingFuel = state.mass - constants.dryMass;
-        if(remainingFuel <= 0){remainingFuel = 0;}
-        if(density <= lowestDensity && state.height != 0.0){
-            lowestDensity = density;
-            lowestDensityAt = state.height;
-        }
-
-        print_flightInfo(&state, cTime, acceleration, remainingFuel,aeroDrag, density);
-
+        euler_step(&constants, &state, dTime);
+        update_statistics_printInfo(&constants, &state, &maxHeight, &maxVelocity, &lowestDensity, &lowestDensityAt, cTime);
         if(state.height <= 0.0 && cTime > 0.0 && state.vel < 0){
             printf("Rocket hit the ground!!");
             break;
