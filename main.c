@@ -73,6 +73,33 @@ void euler_step(const Constants_t *constants, State_t *state, double dt){
    if(state->mass < constants->dryMass){state->mass = constants->dryMass;}
 }
 
+void rk4_step(const Constants_t *constants, State_t *state, double dt){
+    Derivatives_t k1 = calc_derivatives(constants, state);
+    State_t tmp;
+    tmp.height = state->height + k1.dh * dt/2;
+    tmp.mass = state->mass + k1.dm * dt/2;
+    tmp.vel = state->vel + k1.dv * dt/2;
+    Derivatives_t k2 = calc_derivatives(constants, &tmp);
+    tmp.height = state->height + k2.dh * dt/2;
+    tmp.mass = state->mass + k2.dm * dt/2;
+    tmp.vel = state->vel + k2.dv * dt/2;
+    Derivatives_t k3 = calc_derivatives(constants, &tmp);
+    tmp.height = state->height + k3.dh * dt;
+    tmp.mass = state->mass + k3.dm * dt;
+    tmp.vel = state->vel + k3.dv * dt;
+    Derivatives_t k4 = calc_derivatives(constants, &tmp);
+
+    state->height += (k1.dh + 2*k2.dh + 2*k3.dh + k4.dh) / 6 * dt;
+    state->vel += (k1.dv + 2*k2.dv + 2*k3.dv + k4.dv) / 6 * dt;
+    state->mass += (k1.dm + 2*k2.dm + 2*k3.dm + k4.dm) / 6 * dt;
+
+    if(state->height < 0.0){
+        state->height = 0.0;
+        state->vel = 0.0;    
+    }
+   if(state->mass < constants->dryMass){state->mass = constants->dryMass;}
+}
+
 int init_simulation(Constants_t *constants, State_t *state){
     if(!constants || !state){return 1;}
     constants->dryMass = 25000.0; // kg
@@ -86,66 +113,62 @@ int init_simulation(Constants_t *constants, State_t *state){
     return 0;
 }
 
-void print_flightInfo(const State_t *state, double cTime, double a, double remFuel, double aeroDrag, double density){
-    printf("Time:%.3fs | acceleration:%.3fm/s^2 | Height:%.3fm | velocity:%.3fm/s | mass:%.3fkg | remaining fuel:%.3fkg | aerodrag:%.3fN | airdensity:%.3fkg/m^3\n",
+void init_file(FILE *file){
+    fprintf(file, "time,height,velocity,acceleration,aerodrag\n");
+}
+
+void update_file(FILE *file, const Constants_t *constants, const State_t *state, double cTime){
+    fprintf(file,"%.3f,%.3f,%.3f,%.3f,%.3f\n",
         cTime,
-        a,
         state->height,
         state->vel,
-        state->mass,
-        remFuel,
-        aeroDrag,
-        density);
-}
-void update_statistics_printInfo(const Constants_t *constants, const State_t *state, double *maxH, double *maxVel,
-                                                double *lowestD, double *lowestDAt, double cTime){
-        double density = calc_density(state->height);
-        double acceleration = calc_acceleration(constants, state);
-        double aeroDrag = calc_aerodrag(constants, state);
-        double remainingFuel = state->mass - constants->dryMass;
-
-        if(state->height > *maxH){*maxH = state->height;}
-        if(fabs(state->vel) > *maxVel){*maxVel = fabs(state->vel);}
-        if(remainingFuel <= 0){remainingFuel = 0;}
-        if(density <= *lowestD && state->height != 0.0){
-            *lowestD = density;
-            *lowestDAt = state->height;
-        }
-        print_flightInfo(state, cTime, acceleration, remainingFuel, aeroDrag, density);
+        calc_acceleration(constants, state),
+        calc_aerodrag(constants, state)
+    );
 }
 
-int simulate_flight(double time_limit){
+void printInfo(const Constants_t *constants, const State_t *state, double cTime){
+    printf("%.3fs| %.3fm | %.3fm/s | %.3fm/s^2 | %.3fN\n",
+        cTime,
+        state->height,
+        state->vel,
+        calc_acceleration(constants, state),
+        calc_aerodrag(constants, state)
+    );
+}
+
+int simulate_flight(double time_limit, FILE *file){
     Constants_t constants;
     State_t state;
+    if(file != NULL){
+        init_file(file);
+    }
     if(init_simulation(&constants, &state) == 1){
         return 1;
     }
     double cTime = 0.0; // s
     double dTime = 0.01; // s
-    double maxHeight = 0.0;
-    double maxVelocity = 0.0;
-    double lowestDensityAt = 0.0;
-    double lowestDensity = calc_density(state.height);
 
     while (cTime < time_limit)
     {
-        euler_step(&constants, &state, dTime);
-        update_statistics_printInfo(&constants, &state, &maxHeight, &maxVelocity, &lowestDensity, &lowestDensityAt, cTime);
+        rk4_step(&constants, &state, dTime);
+        printInfo(&constants, &state, cTime);
+        if(file != NULL){
+            update_file(file, &constants, &state, cTime);
+        }
         if(state.height <= 0.0 && cTime > 0.0 && state.vel < 0){
-            printf("Rocket hit the ground!!");
+            printf("Rocket hit the ground!!\n");
             break;
         }
         cTime += dTime;
     }
     printf("\nSimulation finished\n");
-    printf("Max velocity: %f | Max height: %f\n",maxVelocity,maxHeight);
-    printf("Lowest density (%f) at %fm\n",lowestDensity, lowestDensityAt);
     return 0;
 }
 
 int main(int argc, char *argv[]){
-    if(argc != 2){
-        fprintf(stderr,"Usage: %s <time s>\n",argv[0]);
+    if(argc < 2){
+        fprintf(stderr,"Usage: %s <time s> (*optional)<output.csv>\n",argv[0]);
         return 1;
     }
     char *str = argv[1];
@@ -166,5 +189,15 @@ int main(int argc, char *argv[]){
         fprintf(stderr,"ERR: Negative time given\n");
         return 1;
     }
-    return simulate_flight(time);
+    if(argc == 3){
+        FILE *outputFile = fopen(argv[2], "w");
+        if(!outputFile){
+            fprintf(stderr, "ERR: Could not open file: %s\n", argv[2]);
+            return 1;
+        }
+        int status = simulate_flight(time, outputFile);
+        fclose(outputFile);
+        return status;
+    }
+    return simulate_flight(time, NULL);
 }
