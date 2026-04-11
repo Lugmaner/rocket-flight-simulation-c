@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #define EARTH_GRAV 9.81
+#define SPEED_OF_SOUND 343
 
 typedef struct
 {
@@ -27,6 +28,15 @@ typedef struct
     double dm;
 }Derivatives_t;
 
+double calc_drag_coefficient(double velocity){
+    double mach = fabs(velocity) / SPEED_OF_SOUND;
+    return 0.3 + 0.5 * exp(-pow(((mach - 1.0) / 0.3),2));
+}
+
+double calc_gravity(const State_t *state){
+    return EARTH_GRAV * pow(6371000.0 / (6371000.0 + state->height), 2);
+}
+
 double calc_thrust(const Constants_t *constants, const State_t *state){
     if(state->mass - constants->dryMass <= 0){
         return 0.0;
@@ -42,15 +52,17 @@ double calc_density(double height){ //kg/m^3
 
 double calc_aerodrag(const Constants_t *constants,const State_t *state){ // newton
     double density = calc_density(state->height);
+    double dragCoefficient = calc_drag_coefficient(state->vel);
     double v = state->vel;
-    double aeroDrag = 0.5 * density * v * v * constants->dragCoefficient * constants->crossSectionArea;
+    double aeroDrag = 0.5 * density * v * v * dragCoefficient * constants->crossSectionArea;
     return v < 0 ? -aeroDrag : aeroDrag;
 }
 
 double calc_acceleration(const Constants_t *constants,const State_t *state){ // m/s^2
     double aeroDrag = calc_aerodrag(constants, state);
     double thrust = calc_thrust(constants,state);
-    return (thrust / state->mass) - (aeroDrag / state->mass) - EARTH_GRAV;
+    double gravity = calc_gravity(state);
+    return (thrust / state->mass) - (aeroDrag / state->mass) - gravity;
 }
 
 Derivatives_t calc_derivatives(const Constants_t *constants, const State_t *state){
@@ -114,24 +126,26 @@ int init_simulation(Constants_t *constants, State_t *state){
 }
 
 void init_file(FILE *file){
-    fprintf(file, "time,height,velocity,acceleration,aerodrag\n");
+    fprintf(file, "time s,height m,velocity m/s,mach,acceleration m/s^2,aerodrag N\n");
 }
 
 void update_file(FILE *file, const Constants_t *constants, const State_t *state, double cTime){
-    fprintf(file,"%.3f,%.3f,%.3f,%.3f,%.3f\n",
+    fprintf(file,"%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
         cTime,
         state->height,
         state->vel,
+        state->vel/SPEED_OF_SOUND,
         calc_acceleration(constants, state),
         calc_aerodrag(constants, state)
     );
 }
 
 void printInfo(const Constants_t *constants, const State_t *state, double cTime){
-    printf("%.3fs| %.3fm | %.3fm/s | %.3fm/s^2 | %.3fN\n",
+    printf("%.3fs| %.3fm | %.3fm/s | %.3f mach | %.3fm/s^2 | %.3fN\n",
         cTime,
         state->height,
         state->vel,
+        state->vel/SPEED_OF_SOUND,
         calc_acceleration(constants, state),
         calc_aerodrag(constants, state)
     );
@@ -152,9 +166,9 @@ int simulate_flight(double time_limit, FILE *file){
     while (cTime < time_limit)
     {
         rk4_step(&constants, &state, dTime);
-        printInfo(&constants, &state, cTime);
+        printInfo(&constants, &state, cTime + dTime);
         if(file != NULL){
-            update_file(file, &constants, &state, cTime);
+            update_file(file, &constants, &state, cTime + dTime);
         }
         if(state.height <= 0.0 && cTime > 0.0 && state.vel < 0){
             printf("Rocket hit the ground!!\n");
