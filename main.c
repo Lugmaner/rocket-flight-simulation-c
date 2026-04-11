@@ -10,7 +10,6 @@ typedef struct
     double dryMass;
     double massStream;
     double crossSectionArea;
-    double dragCoefficient;
     double thrust0;
 }Constants_t;
 
@@ -117,7 +116,6 @@ int init_simulation(Constants_t *constants, State_t *state){
     constants->dryMass = 25000.0; // kg
     constants->massStream = 12500.0; // kg/s
     constants->crossSectionArea = 10.0; //m^2
-    constants->dragCoefficient = 0.5;
     constants->thrust0 = 7607000.0; // newton
     state->vel = 0.0; // m/s
     state->mass = 433000.0; // kg

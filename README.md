@@ -10,92 +10,91 @@ This project focuses on **numerical simulation, system modeling, and physically 
 The simulation models the vertical flight of a rocket under the influence of:
 
 - Thrust  
-- Gravity  
-- Aerodynamic drag  
+- Gravity (altitude-dependent)
+- Aerodynamic drag (Mach-dependent)
 - Fuel consumption (mass flow)  
 
-The system is updated in discrete time steps using a simple numerical integration approach.
+The system is updated in discrete time steps using **Runge-Kutta 4 (RK4)** numerical integration.
 
 ---
 
 ## Physics Model
 
-The simulation includes:
-
-- **Gravity** (constant acceleration)  
-- **Atmospheric density model** (exponential decay with altitude)  
-- **Aerodynamic drag**  
-- **Mass reduction due to fuel burn**
-- **Thrust-to-mass dependent acceleration**
-
-All values are updated iteratively over time.
+- **Gravity** — decreases with altitude: `g = 9.81 * (R / (R + h))²`
+- **Atmospheric density** — exponential decay with altitude
+- **Aerodynamic drag** — Mach-dependent drag coefficient via Gaussian curve:  
+  `Cd(M) = 0.3 + 0.5 * exp(-((M - 1) / 0.3)²)`  
+  Models the transonic drag peak at Mach 1
+- **Mass reduction** — due to fuel burn (constant mass flow)
+- **Thrust** — constant while fuel remains
 
 ---
 
 ## Structure
 
-The simulation is based on a central `Rocket_t` structure containing:
+### Structs
 
-- Current velocity, height, acceleration  
-- Mass, fuel, thrust  
-- Aerodynamic properties (drag coefficient, cross-section)  
-- State flags (e.g. fuel empty)  
+| Struct | Description |
+|--------|-------------|
+| `Constants_t` | Fixed rocket parameters (dry mass, thrust, area, ...) |
+| `State_t` | Current simulation state (height, velocity, mass) |
+| `Derivatives_t` | Time derivatives (dh, dv, dm) used by the integrator |
 
----
+### Update Pipeline (per step)
 
-### Update Pipeline
-
-Each simulation step performs:
-
-1. Mass update (fuel consumption)  
-2. Fuel check  
-3. Aerodynamic drag calculation  
-4. Acceleration update  
-5. Velocity update  
-6. Position update  
+1. Compute k1–k4 via `calc_derivatives`
+2. Combine with RK4 weighted average
+3. Update state (height, velocity, mass)
+4. Apply boundary checks (ground, dry mass)
 
 ---
 
 ## Features
 
-- Time-stepped simulation (fixed Δt)  
-- Dynamic tracking of:
-  - Maximum height  
-  - Maximum velocity  
-  - Lowest atmospheric density  
-- Fuel depletion handling  
-- Ground impact detection  
-- Continuous console output of system state  
+- **RK4 integration** for accurate numerical results
+- **Mach-dependent drag** with transonic peak at Mach 1
+- **Altitude-dependent gravity**
+- **Optional CSV output** for data visualization
+- Dynamic tracking of maximum height, velocity, lowest air density
+- Fuel depletion and ground impact detection
 
 ---
 
-## Example Output
+## Usage
 
-The simulation prints values such as:
+```bash
+./sim <time_seconds>                   # run simulation
+./sim <time_seconds> output.csv        # run and export to CSV
+```
 
-- Time  
-- Acceleration  
-- Velocity  
-- Height  
-- Remaining fuel  
-- Aerodynamic drag  
-- Air density  
+### Example
 
----
+```bash
+./sim 300 output.csv
+```
 
-## Limitations
+### CSV Format
 
-- 1D vertical motion only  
-- No advanced integration methods (e.g. Runge-Kutta)  
-- Constant thrust (no staging)  
-- Simplified atmosphere model  
-- No orbital mechanics  
+```
+time,height,velocity,acceleration,aerodrag
+0.010,0.058,5.802,580.156,0.021
+...
+```
 
 ---
 
 ## Build
 
-Using the provided script:
-
 ```bash
 ./compileSim.sh main.c sim
+```
+
+---
+
+## Limitations
+
+- 1D vertical motion only
+- No rocket staging
+- Simplified atmosphere model (no temperature profile)
+- Constant thrust (no thrust curve)
+- No orbital mechanics
