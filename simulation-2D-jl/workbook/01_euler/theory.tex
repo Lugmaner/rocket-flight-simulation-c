@@ -4,183 +4,311 @@
 \begin{document}
 
 \begin{center}
-  {\LARGE \textbf{Kapitel 01: Das Euler-Verfahren}}\\[0.5em]
-  {\large \textcolor{hintgray}{Numerische Lösung gewöhnlicher Differentialgleichungen}}\\[0.3em]
+  {\LARGE \textbf{Chapter 01: The Euler Method}}\\[0.5em]
+  {\large \textcolor{hintgray}{Ordinary Differential Equations — From Taylor Series to Numerical Integration}}\\[0.3em]
   {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
 \end{center}
-\vspace{1em}
-\hrule
-\vspace{1.5em}
+\vspace{1em}\hrule\vspace{1.5em}
 
-% ─────────────────────────────────────────────
-\section{Was ist eine Differentialgleichung?}
+% ──────────────────────────────────────────────────────────────
+\section{What is an Ordinary Differential Equation?}
 
-\begin{theorybox}{Definition: Gewöhnliche DGL (ODE)}
-Eine \textbf{gewöhnliche Differentialgleichung} (ODE) beschreibt, wie sich eine Größe $y(t)$ \textit{in Abhängigkeit von sich selbst und der Zeit} verändert:
+\begin{theorybox}{Definition}
+An \textbf{ordinary differential equation (ODE)} relates an unknown function $y(t)$ to its own derivatives:
 \[
-  \frac{dy}{dt} = f(t,\, y)
+  \frac{dy}{dt} = f(t,\, y), \qquad y(t_0) = y_0
 \]
-$f(t,y)$ ist eine beliebige Funktion. Der Wert $y(0) = y_0$ heißt \textbf{Anfangsbedingung}.
-Das Ziel: Finde $y(t)$ für alle $t > 0$.
+The pair of the ODE and the initial condition $y(t_0)=y_0$ is called an \textbf{initial value problem (IVP)}.
+The goal: find $y(t)$ for all $t > t_0$.
 \end{theorybox}
 
-\subsection*{Warum numerisch?}
-Die meisten ODEs in der Physik haben \textbf{keine geschlossene analytische Lösung}.
-Stattdessen berechnen wir \textit{Näherungswerte} auf einem Zeitgitter:
-\[
-  t_0,\; t_1 = t_0 + h,\; t_2 = t_0 + 2h,\; \ldots
-\]
-wobei $h$ die \textbf{Schrittweite} ist.
+\subsection*{Analytical Solution via Separation of Variables}
 
-% ─────────────────────────────────────────────
-\section{Das Euler-Verfahren}
+Many first-order ODEs can be solved exactly. The technique of \textbf{separation of variables} rewrites the ODE so that all $y$-terms are on one side and all $t$-terms on the other, then integrates both sides.
 
-\begin{theorybox}{Formel: Explizites Euler-Verfahren}
+\textbf{Example:} $\dfrac{dy}{dt} = -k\,y$
+
+\begin{align*}
+  \frac{dy}{y} &= -k\,dt                   && \text{(separate)} \\
+  \int \frac{1}{y}\,dy &= \int -k\,dt      && \text{(integrate both sides)} \\
+  \ln|y| &= -kt + C                         && \text{(antiderivatives)} \\
+  y(t) &= y_0\,e^{-kt}                      && \text{(exponentiate, apply IC)}
+\end{align*}
+
+This is the \textbf{exact} solution. Any numerical method must approximate this.
+
+% ──────────────────────────────────────────────────────────────
+\section{The Taylor Series — Foundation of All Numerical Methods}
+
+\begin{theorybox}{Taylor Expansion of $y(t+h)$}
+If $y(t)$ is smooth, we can expand it around $t$:
 \[
-  \boxed{y_{n+1} = y_n + h \cdot f(t_n,\, y_n)}
+  y(t+h) = y(t) + h\,\underbrace{y'(t)}_{= f(t,y)} + \frac{h^2}{2!}\,y''(t) + \frac{h^3}{3!}\,y'''(t) + \cdots
 \]
-\textbf{Idee:} Wir linearisieren $y(t)$ lokal — die Ableitung $f(t_n, y_n)$ wird als konstant über den ganzen Schritt angenommen.
+This is an \textbf{exact} formula (infinite series). Every numerical method is derived by truncating this series at some order.
 \end{theorybox}
 
-\subsection*{Geometrische Interpretation}
-Am Punkt $(t_n, y_n)$ berechnen wir die Steigung der Kurve. Dann gehen wir einen Schritt $h$ entlang dieser Steigung. Je kleiner $h$, desto genauer.
+\subsection*{Second Derivative via the Chain Rule}
 
-\begin{theorybox}{Fehleranalyse}
-\begin{itemize}
-  \item \textbf{Lokaler Fehler} (pro Schritt): $\mathcal{O}(h^2)$ — quadratisch klein
-  \item \textbf{Globaler Fehler} (nach $N$ Schritten): $\mathcal{O}(h)$ — linear in $h$
-  \item Das Euler-Verfahren ist ein Verfahren \textbf{erster Ordnung}
-\end{itemize}
-Halbiert man $h$, halbiert sich auch der globale Fehler.
+The second derivative $y''(t)$ can be expressed using $f$:
+\[
+  y''(t) = \frac{d}{dt}f(t,y(t)) = \underbrace{\frac{\partial f}{\partial t}}_{\text{explicit}} + \underbrace{\frac{\partial f}{\partial y}\cdot f(t,y)}_{\text{implicit (chain rule)}}
+\]
+This is why higher-order Taylor methods require computing partial derivatives of $f$ — which is expensive. Runge-Kutta methods (Chapter 02) achieve the same accuracy without this.
+
+\begin{theorybox}{The Euler Method from Taylor Truncation}
+Truncate after the first derivative term:
+\[
+  y(t+h) \approx y(t) + h\,f(t,y(t))
+\]
+\[
+  \boxed{y_{n+1} = y_n + h\cdot f(t_n,\,y_n)}
+\]
+The \textbf{local truncation error} is the dropped term: $\dfrac{h^2}{2}y''(\xi) = \mathcal{O}(h^2)$.\\
+After $N = T/h$ steps, errors accumulate: \textbf{global error} $= \mathcal{O}(h)$.
 \end{theorybox}
 
-% ─────────────────────────────────────────────
-\section{Rechenaufgaben}
+% ──────────────────────────────────────────────────────────────
+\section{Geometric Interpretation}
 
-\begin{exercisebox}{1 — Euler von Hand (5 Schritte)}
-Gegeben sei die ODE:
-\[
-  \frac{dy}{dt} = -y, \quad y(0) = 1, \quad h = 0{,}2
-\]
-\textbf{Exakte Lösung:} $y(t) = e^{-t}$
-
-Berechne die Näherungswerte $y_1, y_2, y_3, y_4, y_5$ mit dem Euler-Verfahren.
-Fülle die Tabelle aus:
+At each point $(t_n, y_n)$, the ODE tells us the \textbf{slope} of the solution curve: $f(t_n, y_n)$.
+Euler's method moves a distance $h$ along this slope — a straight-line approximation.
+The error arises because the true curve is not actually straight.
 
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|}
-\hline
-$n$ & $t_n$ & $y_n$ (Euler) & $y(t_n) = e^{-t_n}$ & Fehler $|y_n - y(t_n)|$ \\
-\hline
-0 & 0{,}0 & 1{,}0000 & 1{,}0000 & 0{,}0000 \\
-\hline
-1 & 0{,}2 & & & \\
-\hline
-2 & 0{,}4 & & & \\
-\hline
-3 & 0{,}6 & & & \\
-\hline
-4 & 0{,}8 & & & \\
-\hline
-5 & 1{,}0 & & & \\
-\hline
-\end{tabular}
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=6cm,
+  xlabel={$t$}, ylabel={$y$},
+  xmin=0, xmax=1.2, ymin=0, ymax=1.2,
+  grid=both, grid style={line width=0.3pt, draw=gray!30},
+  title={Euler steps vs.\ exact solution}
+]
+% Exact: e^{-t}
+\addplot[domain=0:1.2, samples=100, thick, black] {exp(-x)};
+\addlegendentry{Exact $e^{-t}$}
+% Euler h=0.4: points at 0, 0.4, 0.8, 1.2
+% y0=1, y1=0.6, y2=0.36, y3=0.216
+\addplot[blue, mark=*, mark size=2pt, thick] coordinates {
+  (0,1) (0.4, 0.6) (0.8, 0.36) (1.2, 0.216)
+};
+\addlegendentry{Euler $h=0.4$}
+\end{axis}
+\end{tikzpicture}
 \end{center}
+
+% ──────────────────────────────────────────────────────────────
+\section{Stability Analysis}
+
+\begin{theorybox}{The Test Equation}
+The canonical stability test equation is $\dot{y} = \lambda y$ with $\lambda \in \mathbb{C}$.\\
+Applying Euler: $y_{n+1} = y_n + h\lambda y_n = (1 + h\lambda)\,y_n$
+
+After $n$ steps: $y_n = (1+h\lambda)^n y_0$.\\
+For stability we need $|1 + h\lambda| \leq 1$.
+
+\textbf{Real case ($\lambda < 0$):} Stability requires $-2 \leq h\lambda \leq 0$, i.e.\
+\[
+  h \leq \frac{2}{|\lambda|}
+\]
+This is the \textbf{stability condition} — the step size has an upper bound!
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{Exercises}
+
+\begin{exercisebox}{1 — Analytical Solution: Separation of Variables}
+Solve the following ODEs analytically using separation of variables.
+Show every step of the integration.
+
+\textbf{a)} $\dfrac{dy}{dt} = 3y$, \quad $y(0) = 2$
+
+\vspace{0.3em}
+\textit{Step 1 (separate):} $\dfrac{dy}{y} = $ \underline{\hspace{3cm}}
+
+\textit{Step 2 (integrate both sides):} $\displaystyle\int\dfrac{dy}{y} = \int$ \underline{\hspace{3cm}}
+
+\textit{Step 3 (solve for $y$):} $y(t) = $ \underline{\hspace{4cm}}
+
+\vspace{1em}
+\textbf{b)} $\dfrac{dy}{dt} = -2t\,y$, \quad $y(0) = 1$
+\quad (Answer: $y = e^{-t^2}$)
+
+\vspace{0.3em}
+Show full derivation:
 \end{exercisebox}
 
-\begin{solutionspace}[7cm]
+\begin{solutionspace}[9cm]
 \end{solutionspace}
 
-\begin{hintbox}
-Schritt 1: $y_1 = y_0 + h \cdot f(t_0, y_0) = 1{,}0 + 0{,}2 \cdot (-1{,}0) = 0{,}8$\\
-Schritt 2: $y_2 = y_1 + h \cdot f(t_1, y_1) = 0{,}8 + 0{,}2 \cdot (-0{,}8) = ?$\\
-\ldots weiter bis $n=5$.
-\end{hintbox}
+\begin{exercisebox}{2 — Taylor Series Expansion}
+\textbf{a)} Write the Taylor expansion of $e^{-h}$ around $h=0$ up to order $h^4$.
+\[
+  e^{-h} = \sum_{n=0}^{\infty} \frac{(-h)^n}{n!} = \underline{\hspace{8cm}}
+\]
 
-\vspace{1em}
+\textbf{b)} The Euler approximation for $\dot{y} = -y$, $y(0)=1$ after one step of size $h$ gives $y_1 = 1-h$.
+The exact value is $y(h) = e^{-h}$.
+Using your expansion from (a), show that the error is:
+\[
+  e^{-h} - (1-h) = \underline{\hspace{6cm}} = \mathcal{O}(h^2)
+\]
 
-\begin{exercisebox}{2 — Einfluss der Schrittweite}
-Wiederhole Aufgabe 1 mit $h = 0{,}5$ (nur 2 Schritte bis $t=1$).\\[0.5em]
-\textbf{Frage:} Wie groß ist der Fehler bei $t=1{,}0$ im Vergleich zu $h=0{,}2$?\\
-Stimmt die erwartete lineare Fehlerordnung $\mathcal{O}(h)$?
+\textbf{c)} What is the leading error term? For $h=0.1$, estimate the error numerically.
+\end{exercisebox}
+
+\begin{solutionspace}[8cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Euler by Hand: Five Steps}
+Given: $\dfrac{dy}{dt} = -y$, \; $y(0)=1$, \; $h=0.2$.
+\quad Exact solution: $y(t) = e^{-t}$.
+
+Fill in the table. Compute every entry by hand — use the formula
+$y_{n+1} = y_n + h\cdot f(t_n, y_n) = y_n - 0.2\,y_n = 0.8\,y_n$.
 
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-$n$ & $t_n$ & $y_n$ (Euler, $h=0{,}5$) & $y(t_n) = e^{-t_n}$ & Fehler \\
+$n$ & $t_n$ & $y_n$ (Euler) & $e^{-t_n}$ (exact) & $|$error$|$ \\
 \hline
-0 & 0{,}0 & 1{,}0000 & 1{,}0000 & 0{,}0000 \\
+0 & 0.0 & 1.0000\phantom{000} & 1.0000\phantom{000} & 0.0000 \\
 \hline
-1 & 0{,}5 & & & \\
+1 & 0.2 & & 0.8187 & \\
 \hline
-2 & 1{,}0 & & & \\
+2 & 0.4 & & 0.6703 & \\
+\hline
+3 & 0.6 & & 0.5488 & \\
+\hline
+4 & 0.8 & & 0.4493 & \\
+\hline
+5 & 1.0 & & 0.3679 & \\
 \hline
 \end{tabular}
 \end{center}
 
-Verhältnis der Fehler: $\dfrac{\text{Fehler}_{h=0{,}5}}{\text{Fehler}_{h=0{,}2}} \approx$ \underline{\hspace{2cm}} \quad (erwartet: $\approx 2{,}5$)
+At $t=1.0$: relative error $= \dfrac{|y_5 - e^{-1}|}{e^{-1}} \approx $ \underline{\hspace{2cm}} \%
 \end{exercisebox}
 
 \begin{solutionspace}[5cm]
 \end{solutionspace}
 
-\vspace{1em}
-
-\begin{exercisebox}{3 — Freier Fall als ODE}
-Ein Objekt fällt aus $h_0 = 100\,\text{m}$ mit $v_0 = 0\,\text{m/s}$. Keine Luftreibung.\\[0.5em]
-Das System lautet (Zustandsvektor $\mathbf{y} = [h, v]^\top$):
-\[
-  \frac{d}{dt}\begin{pmatrix} h \\ v \end{pmatrix}
-  = \begin{pmatrix} v \\ -g \end{pmatrix}, \quad g = 9{,}81\,\frac{\text{m}}{\text{s}^2}
-\]
-
-Berechne mit $h_{\text{step}} = 1\,\text{s}$ die ersten \textbf{3 Schritte}:
+\begin{exercisebox}{4 — Error Order Verification}
+Repeat Exercise 3 with $h=0.4$ (2 steps to reach $t=0.8$) and $h=0.1$ (10 steps).
 
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|}
 \hline
-$n$ & $t$ (s) & $h$ (m) & $v$ (m/s) & $v_{\text{exakt}} = -g\cdot t$ \\
+$h$ & $y_N$ at $t=1$ & Error $|y_N - e^{-1}|$ & Ratio (error$_{2h}$ / error$_h$) \\
 \hline
-0 & 0 & 100{,}00 & 0{,}00 & 0{,}00 \\
+0.4  & & & — \\
 \hline
-1 & 1 & & & \\
+0.2  & (from Ex.~3) & & \\
 \hline
-2 & 2 & & & \\
-\hline
-3 & 3 & & & \\
+0.1  & & & \\
 \hline
 \end{tabular}
 \end{center}
 
-\textbf{Wann trifft das Objekt den Boden?} Exakt: $t^* = \sqrt{2h_0/g} \approx$ \underline{\hspace{2cm}} s
+\textbf{Expected:} Each halving of $h$ halves the error (ratio $\approx 2$). Does your data confirm $\mathcal{O}(h)$?
 \end{exercisebox}
 
 \begin{solutionspace}[6cm]
 \end{solutionspace}
 
-\begin{exercisebox}{4 — Konzeptfrage: Stabilität}
-Betrachte die ODE $\dfrac{dy}{dt} = \lambda y$ mit $\lambda > 0$ (wachsende Lösung).\\[0.5em]
-\textbf{a)} Schreibe die Euler-Formel für diesen Fall auf.\\[0.3em]
-\textbf{b)} Ab welcher Schrittweite $h$ wird $|y_{n+1}| > |y_n|$ garantiert?\\[0.3em]
-\textbf{c)} Ab welchem $h$ ``explodiert'' die Näherung (Instabilität)?\\
-\textit{Hinweis: Betrachte den Faktor $(1 + h\lambda)$ und wann dieser $> 1$ oder $< -1$ wird.}
+\begin{exercisebox}{5 — Free Fall as a Vector ODE}
+A ball is dropped from $h_0 = 500\,\text{m}$ with $v_0 = 0$.
+State vector $\mathbf{y} = [h,\, v]^\top$, ODE: $\dot{\mathbf{y}} = [v,\; -g]^\top$, $g=9.81\,\text{m/s}^2$.
+
+\textbf{a)} Solve analytically: $h(t) = $ \underline{\hspace{4cm}}, \quad $v(t) = $ \underline{\hspace{4cm}}
+
+\textbf{b)} At what time does the ball hit the ground?
+\[
+  h(t^*) = 0 \;\Rightarrow\; t^* = \sqrt{\frac{2h_0}{g}} = \underline{\hspace{3cm}}\,\text{s}
+\]
+
+\textbf{c)} Apply Euler with $h_\text{step} = 2\,\text{s}$. Fill in 4 steps:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+$n$ & $t$ (s) & $h$ (m) & $v$ (m/s) & $h_\text{exact}$ (m) \\
+\hline
+0 & 0  & 500.00 & 0.00   & 500.00 \\
+\hline
+1 & 2  & & & \\
+\hline
+2 & 4  & & & \\
+\hline
+3 & 6  & & & \\
+\hline
+4 & 8  & & & \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{d)} Why does Euler \textit{over}estimate the height for free fall? Sketch the argument using the Taylor series.
 \end{exercisebox}
 
-\begin{solutionspace}[6cm]
+\begin{solutionspace}[8cm]
 \end{solutionspace}
 
-% ─────────────────────────────────────────────
-\section{Verbindung zum Julia-Template}
+\begin{exercisebox}{6 — The Logistic Equation (Challenge)}
+The logistic ODE models population growth with a carrying capacity $K$:
+\[
+  \frac{dy}{dt} = r\,y\left(1 - \frac{y}{K}\right), \quad y(0) = y_0
+\]
 
-\begin{theorybox}{Was du jetzt implementierst}
-In \texttt{template.jl} (Kapitel 01) implementierst du:
+\textbf{a)} Use \textbf{partial fractions} to separate and integrate:
+\[
+  \int \frac{dy}{y(1 - y/K)} = \int r\,dt
+\]
+\textit{Hint:} $\dfrac{1}{y(1-y/K)} = \dfrac{1}{y} + \dfrac{1/K}{1-y/K}$
+
+\textbf{b)} Show that the exact solution is:
+\[
+  y(t) = \frac{K}{1 + \left(\frac{K}{y_0}-1\right)e^{-rt}}
+\]
+
+\textbf{c)} With $r=1$, $K=100$, $y_0=10$: Apply Euler with $h=0.5$ for 3 steps.
+Compare to exact solution at $t=1.5$.
+
+\textbf{d)} What happens to $y(t)$ as $t\to\infty$? Find the equilibrium analytically by setting $\dot{y}=0$.
+\end{exercisebox}
+
+\begin{solutionspace}[12cm]
+\end{solutionspace}
+
+% ──────────────────────────────────────────────────────────────
+\section{Resources}
+
+\begin{hintbox}
+\textbf{Watch before starting the template:}
+\begin{itemize}
+  \item \textbf{3Blue1Brown} — ``Differential equations'' (visual intuition, highly recommended):\\
+        \texttt{youtube.com/watch?v=p\_di4Zn4wz4} (DE overview) and the full playlist
+  \item \textbf{Khan Academy} — ``Separable equations'' (step-by-step technique):\\
+        \texttt{khanacademy.org/math/ap-calculus-ab/ab-diff-equations-new}
+  \item \textbf{Michel van Biezen} — ``Differential Equations'' (very thorough worked examples):\\
+        Search: ``Michel van Biezen differential equations'' on YouTube
+\end{itemize}
+\textbf{Reference:}
+\begin{itemize}
+  \item Paul's Online Math Notes — ODEs: \texttt{tutorial.math.lamar.edu/Classes/DE/DE.aspx}
+  \item MIT 18.03 Differential Equations (free): \texttt{ocw.mit.edu/courses/18-03sc-differential-equations-fall-2011}
+\end{itemize}
+\end{hintbox}
+
+\section{Connection to the Julia Template}
+
+\begin{theorybox}{What you implement in \texttt{template.jl}}
 \begin{enumerate}
-  \item \texttt{euler\_step(f, t, y, h)} — einen einzelnen Euler-Schritt
-  \item \texttt{euler\_solve(f, y0, t0, t\_end, h)} — die vollständige Integration
-  \item Test mit $\dot{y} = -y$ und Fehlerplot
-  \item Test mit freiem Fall (Aufgabe 3)
+  \item \texttt{euler\_step(f, t, y, h)} — one Euler step (works for scalars and vectors)
+  \item \texttt{euler\_solve(f, y0, t0, t\_end, h)} — full integration loop
+  \item Test case 1: $\dot{y}=-y$ — compare to exact $e^{-t}$, plot error vs.\ $h$
+  \item Test case 2: Free fall vector system (Exercise 5)
+  \item Test case 3: Logistic equation (Exercise 6) — does your Euler stay below $K$?
 \end{enumerate}
-Die Funktion \texttt{euler\_step} ist exakt die Formel $y_{n+1} = y_n + h \cdot f(t_n, y_n)$, die du oben von Hand angewendet hast.
 \end{theorybox}
 
 \end{document}

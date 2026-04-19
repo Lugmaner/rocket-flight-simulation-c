@@ -4,38 +4,50 @@
 \begin{document}
 
 \begin{center}
-  {\LARGE \textbf{Kapitel 02: Runge-Kutta 4. Ordnung (RK4)}}\\[0.5em]
-  {\large \textcolor{hintgray}{Warum Euler nicht reicht — und wie man es besser macht}}\\[0.3em]
+  {\LARGE \textbf{Chapter 02: Runge-Kutta 4th Order (RK4)}}\\[0.5em]
+  {\large \textcolor{hintgray}{From Simpson's Rule to the Most Important ODE Solver in Science}}\\[0.3em]
   {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
 \end{center}
-\vspace{1em}
-\hrule
-\vspace{1.5em}
+\vspace{1em}\hrule\vspace{1.5em}
 
-% ─────────────────────────────────────────────
-\section{Motivation: Euler ist erster Ordnung}
+% ──────────────────────────────────────────────────────────────
+\section{The Integral Form of an ODE}
 
-\begin{theorybox}{Das Problem mit Euler}
-Der Euler-Schritt entspricht dem ersten Glied der Taylor-Reihe von $y(t+h)$:
+\begin{theorybox}{From Derivative to Integral}
+The ODE $\dot{y} = f(t,y)$ can be integrated exactly over $[t_n, t_{n+1}]$:
 \[
-  y(t+h) = y(t) + h\,\dot{y}(t) + \underbrace{\frac{h^2}{2}\ddot{y}(t) + \cdots}_{\text{Euler ignoriert das!}}
+  y(t_{n+1}) = y(t_n) + \int_{t_n}^{t_n+h} f(\tau,\, y(\tau))\,d\tau
 \]
-Der \textbf{lokale Fehler} ist $\mathcal{O}(h^2)$ — der abgeschnittene Term.\\
-Nach $N = T/h$ Schritten akkumuliert sich ein \textbf{globaler Fehler} von $\mathcal{O}(h)$.
-
-\textbf{Ziel:} Wir wollen ein Verfahren, das mehr Taylor-Glieder nutzt, ohne höhere Ableitungen $\ddot{y}, \dddot{y}$ explizit berechnen zu müssen.
+The problem: we don't know $y(\tau)$ inside the integral — that's what we're trying to find.\\[0.4em]
+Every numerical method is a \textbf{quadrature rule} for this integral.
 \end{theorybox}
 
-% ─────────────────────────────────────────────
-\section{Die Idee: Mehrere Steigungen mitteln}
+\subsection*{Three Classical Quadrature Rules}
 
-\begin{theorybox}{Grundprinzip von Runge-Kutta}
-Statt nur die Steigung am Anfang des Schritts zu nehmen, berechnen wir \textbf{mehrere Steigungen} an verschiedenen Punkten innerhalb des Intervalls $[t_n,\, t_n+h]$ und bilden einen gewichteten Mittelwert.
+\begin{center}
+\begin{tabular}{lll}
+\textbf{Method} & \textbf{Approximation of integral} & \textbf{Error} \\
+\hline
+Rectangle (left) & $h\cdot f(t_n, y_n)$ & $\mathcal{O}(h^2)$ $\to$ Euler \\
+Midpoint rule & $h\cdot f(t_n+h/2,\; y_n + \frac{h}{2}f_n)$ & $\mathcal{O}(h^3)$ $\to$ RK2 \\
+Simpson's rule & $\frac{h}{6}(f_a + 4f_m + f_b)$ & $\mathcal{O}(h^5)$ $\to$ RK4 \\
+\end{tabular}
+\end{center}
+
+RK4 is essentially \textbf{Simpson's rule} applied adaptively to the ODE integral.
+
+% ──────────────────────────────────────────────────────────────
+\section{Deriving RK4 from Taylor Series}
+
+\begin{theorybox}{Why Euler fails at order 1}
+From Chapter 01: $y(t+h) = y + h f + \frac{h^2}{2}(f_t + f_y f) + \mathcal{O}(h^3)$
+
+Euler gives only $y + hf$ — the $\mathcal{O}(h^2)$ term is the error.
+To cancel it without computing $\partial f/\partial t$ and $\partial f/\partial y$ explicitly,
+we can \textbf{evaluate $f$ at multiple cleverly chosen points} and combine them.
 \end{theorybox}
 
-\subsection*{Die vier Steigungen von RK4}
-
-\begin{theorybox}{RK4-Formel}
+\begin{theorybox}{RK4 — The Four Stages}
 \[
   k_1 = f(t_n,\; y_n)
 \]
@@ -49,131 +61,196 @@ Statt nur die Steigung am Anfang des Schritts zu nehmen, berechnen wir \textbf{m
   k_4 = f\!\left(t_n + h,\; y_n + h\,k_3\right)
 \]
 \[
-  \boxed{y_{n+1} = y_n + \frac{h}{6}\left(k_1 + 2k_2 + 2k_3 + k_4\right)}
+  \boxed{y_{n+1} = y_n + \frac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)}
 \]
 \end{theorybox}
 
-\subsection*{Intuition hinter den Gewichten}
-\begin{itemize}
-  \item $k_1$: Steigung am \textbf{Anfang} des Schritts
-  \item $k_2$: Steigung in der \textbf{Mitte}, ausgehend von $k_1$
-  \item $k_3$: Steigung in der \textbf{Mitte}, ausgehend von $k_2$ (verfeinert)
-  \item $k_4$: Steigung am \textbf{Ende}, ausgehend von $k_3$
-  \item Gewichtung: $1:2:2:1$ — Mittelpunkte sind wichtiger (Simpsonregel!)
-\end{itemize}
+\subsection*{Why the Weights $1:2:2:1$?}
 
-\begin{theorybox}{Fehlerordnung von RK4}
+Expand each $k_i$ as a Taylor series around $(t_n, y_n)$ and collect terms in powers of $h$.
+The weights $1/6,\; 2/6,\; 2/6,\; 1/6$ are chosen exactly so that all terms up to $h^4$ cancel with the Taylor series of the exact solution. The first uncancelled term is $\mathcal{O}(h^5)$.
+
+\begin{theorybox}{Error Orders}
 \begin{itemize}
-  \item \textbf{Lokaler Fehler:} $\mathcal{O}(h^5)$
-  \item \textbf{Globaler Fehler:} $\mathcal{O}(h^4)$
+  \item \textbf{Local truncation error:} $\mathcal{O}(h^5)$ per step
+  \item \textbf{Global error:} $\mathcal{O}(h^4)$ — halving $h$ reduces error by factor $2^4 = 16$
+  \item \textbf{Function evaluations per step:} 4 (compared to 1 for Euler)
 \end{itemize}
-RK4 ist ein Verfahren \textbf{vierter Ordnung}. Halbiert man $h$, fällt der Fehler auf $1/16$ seines Wertes!
 \end{theorybox}
 
-% ─────────────────────────────────────────────
-\section{Rechenaufgaben}
+% ──────────────────────────────────────────────────────────────
+\section{The Butcher Tableau}
 
-\begin{exercisebox}{1 — RK4 von Hand: ein Schritt}
-Gegeben: $\dfrac{dy}{dt} = -y$, $y(0) = 1$, $h = 0{,}5$.\\[0.5em]
-Berechne \textbf{einen RK4-Schritt} und bestimme $y_1$.
+All Runge-Kutta methods can be summarized in a compact \textbf{Butcher tableau}:
+\[
+\begin{array}{c|cccc}
+0   &      &     &     &   \\
+1/2 & 1/2  &     &     &   \\
+1/2 &  0   & 1/2 &     &   \\
+1   &  0   &  0  &  1  &   \\
+\hline
+    & 1/6  & 2/6 & 2/6 & 1/6
+\end{array}
+\]
+The column of the left ($c_i$) gives the time offsets; $a_{ij}$ gives how to combine previous stages; $b_i$ are the final weights.
 
-Fülle schrittweise aus:
+% ──────────────────────────────────────────────────────────────
+\section{Taylor Series Verification of $k_2$}
 
-\begin{align*}
-k_1 &= f(0{,}0,\; 1{,}0000) = \underline{\hspace{3cm}}\\[0.5em]
-k_2 &= f\!\left(0{,}25,\; 1{,}0 + 0{,}25 \cdot k_1\right) = \underline{\hspace{3cm}}\\[0.5em]
-k_3 &= f\!\left(0{,}25,\; 1{,}0 + 0{,}25 \cdot k_2\right) = \underline{\hspace{3cm}}\\[0.5em]
-k_4 &= f\!\left(0{,}5,\; 1{,}0 + 0{,}5 \cdot k_3\right) = \underline{\hspace{3cm}}\\[1em]
-y_1 &= 1{,}0 + \frac{0{,}5}{6}(k_1 + 2k_2 + 2k_3 + k_4) = \underline{\hspace{3cm}}
-\end{align*}
+\begin{theorybox}{Expanding $k_2$ around $(t_n, y_n)$}
+\[
+  k_2 = f\!\left(t_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_1\right)
+\]
+Using a 2D Taylor expansion of $f(t+\Delta t, y+\Delta y)$:
+\[
+  k_2 = f + \frac{h}{2}\frac{\partial f}{\partial t} + \frac{h}{2}f\frac{\partial f}{\partial y} + \mathcal{O}(h^2)
+\]
+where all partial derivatives are evaluated at $(t_n, y_n)$.
+Substituting into the RK4 formula and collecting, one finds the first uncancelled term is $\propto h^5$ — confirming 4th order accuracy.
+\end{theorybox}
 
-Exakter Wert: $y(0{,}5) = e^{-0{,}5} \approx 0{,}60653$\\
-Euler-Wert (aus Kapitel 01): $0{,}5$\\[0.5em]
-\textbf{Fehler RK4:} \underline{\hspace{2cm}} \quad \textbf{Fehler Euler:} \underline{\hspace{2cm}}
+% ──────────────────────────────────────────────────────────────
+\section{Exercises}
+
+\begin{exercisebox}{1 — Simpson's Rule Connection}
+Simpson's rule for $\int_a^b g(x)\,dx$ uses three points:
+\[
+  \int_a^b g(x)\,dx \approx \frac{b-a}{6}\left(g(a) + 4g\!\left(\frac{a+b}{2}\right) + g(b)\right)
+\]
+
+\textbf{a)} Write out the RK4 update formula in terms of $k_1, k_2, k_3, k_4$ and identify
+the Simpson weights $(1, 4, 1)$ hidden in the $(1, 2, 2, 1)$ pattern.
+\textit{Hint: think of $k_2$ and $k_3$ as two estimates of the midpoint.}
+
+\textbf{b)} Show that Simpson's rule is \textit{exact} for polynomials up to degree 3.
+\textit{Hint: check for $g(x) = x^3$ on $[0,1]$:}
+$\int_0^1 x^3\,dx = 1/4$, \; Simpson gives $\frac{1}{6}(0 + 4\cdot(1/2)^3 + 1) = ?$
 \end{exercisebox}
 
 \begin{solutionspace}[8cm]
 \end{solutionspace}
 
-\begin{exercisebox}{2 — Fehlerordnung experimentell bestätigen}
-Berechne den Fehler bei $t=1{,}0$ für verschiedene Schrittweiten (mit Taschenrechner oder von Hand für $h=0{,}5$):
+\begin{exercisebox}{2 — RK4 by Hand: One Full Step}
+$\dfrac{dy}{dt} = -y$, \quad $y(0) = 1$, \quad $h = 0.5$.
+
+Compute all four stages, showing every arithmetic step:
+
+\begin{align*}
+k_1 &= f(0.0,\; 1.0000) = -1.0000\\[0.4em]
+k_2 &= f\!\left(0.25,\; 1.0 + 0.25\cdot k_1\right) = f(0.25,\; \underline{\hspace{2cm}}) = \underline{\hspace{2cm}}\\[0.4em]
+k_3 &= f\!\left(0.25,\; 1.0 + 0.25\cdot k_2\right) = f(0.25,\; \underline{\hspace{2cm}}) = \underline{\hspace{2cm}}\\[0.4em]
+k_4 &= f\!\left(0.50,\; 1.0 + 0.50\cdot k_3\right) = f(0.50,\; \underline{\hspace{2cm}}) = \underline{\hspace{2cm}}\\[0.8em]
+y_1 &= 1.0 + \frac{0.5}{6}(k_1 + 2k_2 + 2k_3 + k_4) = \underline{\hspace{5cm}}
+\end{align*}
+
+Exact: $e^{-0.5} = 0.60653$. \quad
+Error RK4: \underline{\hspace{2cm}} \quad
+Error Euler ($y_1 = 0.5$): \underline{\hspace{2cm}}
+
+\textbf{How many times more accurate is RK4 than Euler here?}
+\end{exercisebox}
+
+\begin{solutionspace}[5cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Error Order Experimental Confirmation}
+For $\dot{y}=-y$, $y(0)=1$, compute the global error at $t=1$ for multiple step sizes.
+Use your hand calculation from Exercise 2 as one data point.
 
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-$h$ & $y_N^{\text{RK4}}$ bei $t=1$ & $e^{-1} \approx 0{,}36788$ & Fehler & Verhältnis zum vorh. \\
+$h$ & $y_N^{\text{RK4}}$ at $t=1$ & Error $|y_N - e^{-1}|$ & Ratio & Expected ratio \\
 \hline
-1{,}0  & & & & — \\
+0.50 & (from Ex.~2, continue) & & — & — \\
 \hline
-0{,}5  & & & & \\
+0.25 & & & & $2^4 = 16$ \\
 \hline
-0{,}25 & & & & \\
+0.10 & & & & \\
 \hline
 \end{tabular}
 \end{center}
 
-\textbf{Erwartung:} Das Verhältnis aufeinanderfolgender Fehler sollte $\approx 16$ sein (da $2^4 = 16$).\\
-Was beobachtest du?
+\textbf{Confirm:} When $h$ is halved, the error drops by a factor of approximately \underline{\hspace{1cm}}.
 \end{exercisebox}
 
-\begin{solutionspace}[5cm]
+\begin{solutionspace}[7cm]
 \end{solutionspace}
 
-\begin{exercisebox}{3 — Freier Fall mit RK4}
-Wiederhole die Freifall-Simulation aus Kapitel 01 (Aufgabe 3) mit RK4 und $h = 1{,}0\,\text{s}$.
+\begin{exercisebox}{4 — Vector System: One RK4 Step by Hand}
+Free fall: $\mathbf{y} = [h, v]^\top$, $f(\mathbf{y}) = [v,\; -9.81]^\top$, $\mathbf{y}_0 = [500, 0]^\top$, $h_\text{step}=1\,\text{s}$.
 
-Zustand: $\mathbf{y} = [h, v]^\top$, $f(\mathbf{y}) = [v, -g]$
-
-Berechne \textbf{einen vollständigen RK4-Schritt}:
+Compute the full RK4 step. Show vector arithmetic explicitly:
 
 \begin{align*}
-\mathbf{k}_1 &= f(0,\; [100, 0]) = \underline{\hspace{5cm}}\\[0.5em]
-\mathbf{k}_2 &= f(0{,}5,\; [100, 0] + 0{,}5 \cdot \mathbf{k}_1) = \underline{\hspace{5cm}}\\[0.5em]
-\mathbf{k}_3 &= f(0{,}5,\; [100, 0] + 0{,}5 \cdot \mathbf{k}_2) = \underline{\hspace{5cm}}\\[0.5em]
-\mathbf{k}_4 &= f(1{,}0,\; [100, 0] + 1{,}0 \cdot \mathbf{k}_3) = \underline{\hspace{5cm}}\\[1em]
-\mathbf{y}_1 &= [100, 0] + \frac{1}{6}(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4) = \underline{\hspace{5cm}}
+\mathbf{k}_1 &= f(0,\; [500, 0]^\top) = [\underline{\hspace{1.5cm}},\; \underline{\hspace{1.5cm}}]^\top \\[0.4em]
+\mathbf{y}^* &= [500,0]^\top + 0.5\cdot\mathbf{k}_1 = [\underline{\hspace{2cm}},\; \underline{\hspace{2cm}}]^\top \\[0.4em]
+\mathbf{k}_2 &= f(0.5,\; \mathbf{y}^*) = [\underline{\hspace{2cm}},\; \underline{\hspace{2cm}}]^\top \\[0.4em]
+\mathbf{k}_3 &= f(0.5,\; [500,0]^\top + 0.5\cdot\mathbf{k}_2) = [\underline{\hspace{2cm}},\; \underline{\hspace{2cm}}]^\top \\[0.4em]
+\mathbf{k}_4 &= f(1.0,\; [500,0]^\top + 1.0\cdot\mathbf{k}_3) = [\underline{\hspace{2cm}},\; \underline{\hspace{2cm}}]^\top \\[0.8em]
+\mathbf{y}_1 &= [500,0]^\top + \frac{1}{6}(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4)
+= [\underline{\hspace{2cm}},\; \underline{\hspace{2cm}}]^\top
 \end{align*}
 
-Exakt bei $t=1$: $h = 100 - \frac{1}{2}\cdot 9{,}81 = 95{,}095\,\text{m}$, $v = -9{,}81\,\text{m/s}$
+Exact at $t=1$: $h = 500 - 4.905 = 495.095\,\text{m}$, $v = -9.81\,\text{m/s}$.\\
+Error RK4: \underline{\hspace{2cm}}m \quad Error Euler: \underline{\hspace{2cm}}m
 \end{exercisebox}
 
-\begin{solutionspace}[9cm]
+\begin{solutionspace}[6cm]
 \end{solutionspace}
 
-\begin{exercisebox}{4 — Konzept: Das Butcher-Tableau}
-RK4 lässt sich kompakt als \textbf{Butcher-Tableau} schreiben:
+\begin{exercisebox}{5 — Stability Region (Challenge)}
+The stability region of a method is the set of $z = h\lambda$ (complex) for which the method produces bounded solutions.
 
+For Euler: $|1 + z| \leq 1$ \; (disk of radius 1 centered at $-1$).
+
+For RK4, the amplification factor is:
 \[
-\begin{array}{c|cccc}
-0   &    &    &    &   \\
-1/2 & 1/2 &   &    &   \\
-1/2 & 0  & 1/2 &   &   \\
-1   & 0  & 0  & 1  &   \\
-\hline
-    & 1/6 & 2/6 & 2/6 & 1/6
-\end{array}
+  R(z) = 1 + z + \frac{z^2}{2} + \frac{z^3}{6} + \frac{z^4}{24}
 \]
+(the first 5 terms of $e^z$!)
 
-\textbf{a)} Identifiziere in den Zeilen die Zwischenpunkte $(c_i, a_{ij})$ und in der letzten Zeile die Gewichte $b_i$.\\[0.5em]
-\textbf{b)} Wie viele Funktionsauswertungen $f(\cdot)$ benötigt RK4 pro Schritt?\\[0.5em]
-\textbf{c)} Euler hat nur eine Auswertung. Wie viele hätte RK2 (Mittelpunktsregel)?
+\textbf{a)} Show that $R(z) = e^z + \mathcal{O}(z^5)$, confirming 4th order accuracy.
+
+\textbf{b)} For real $z < 0$ (i.e.\ $\lambda < 0$, stable ODE): find the range of $z$ where $|R(z)| \leq 1$.
+\textit{Hint: Try $z = -1, -2, -2.5, -2.8, -3$. Compute $R(z)$ for each.}
+The stability boundary for RK4 is at $z \approx -2.785$.
+
+\textbf{c)} For the rocket (typical $\lambda \approx -10\,\text{s}^{-1}$ from drag/mass), what is the maximum allowed step size?
 \end{exercisebox}
 
-\begin{solutionspace}[5cm]
+\begin{solutionspace}[10cm]
 \end{solutionspace}
 
-% ─────────────────────────────────────────────
-\section{Verbindung zum Julia-Template}
+% ──────────────────────────────────────────────────────────────
+\section{Resources}
 
-\begin{theorybox}{Was du jetzt implementierst}
-In \texttt{template.jl} (Kapitel 02) implementierst du:
+\begin{hintbox}
+\textbf{Videos:}
+\begin{itemize}
+  \item \textbf{3Blue1Brown} — ``Simpson's rule, compound quadrature'':\\
+        \texttt{youtube.com/watch?v=QXumu31oVdU} (intuition for integration rules)
+  \item \textbf{The Coding Train} — ``Runge-Kutta Integration'' (visual, code-focused):\\
+        Search: ``Coding Train Runge Kutta''
+  \item \textbf{MIT 18.330} — Numerical methods lectures on YouTube (rigorous derivation)
+\end{itemize}
+\textbf{Reading:}
+\begin{itemize}
+  \item Burden \& Faires, \textit{Numerical Analysis} Ch.~5 (standard reference)
+  \item \texttt{mathworld.wolfram.com/Runge-KuttaMethod.html}
+\end{itemize}
+\end{hintbox}
+
+\section{Connection to the Julia Template}
+
+\begin{theorybox}{What you implement in \texttt{template.jl}}
 \begin{enumerate}
-  \item \texttt{rk4\_step(f, t, y, h)} — einen einzelnen RK4-Schritt (k1 bis k4)
-  \item \texttt{rk4\_solve(f, y0, t0, t\_end, h)} — vollständige RK4-Integration
-  \item Vergleich Euler vs.\ RK4: Fehlerplot auf log-Skala
-  \item Beides für das Vektor-System (Freifall)
+  \item \texttt{rk4\_step(f, t, y, h)} — must work for scalars AND vectors
+  \item \texttt{rk4\_solve(f, y0, t0, t\_end, h)} — full integration
+  \item Log-scale error plot: Euler $\mathcal{O}(h)$ vs RK4 $\mathcal{O}(h^4)$ — visually striking
+  \item Vector system test (Exercise 4)
+  \item Stability experiment: solve $\dot{y}=-10y$ with RK4 for $h=0.3$ vs $h=0.28$ — observe blowup
 \end{enumerate}
-\textbf{Wichtig:} Die Funktion \texttt{rk4\_step} muss mit Vektoren \textit{und} skalaren Zuständen funktionieren — nutze Julias Broadcasting.
 \end{theorybox}
 
 \end{document}

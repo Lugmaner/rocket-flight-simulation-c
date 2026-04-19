@@ -4,104 +4,252 @@
 \begin{document}
 
 \begin{center}
-  {\LARGE \textbf{Kapitel 07: Wissenschaftliche Visualisierung}}\\[0.5em]
-  {\large \textcolor{hintgray}{2D- und 3D-Plots, Phasenraum, Interpretation}}\\[0.3em]
+  {\LARGE \textbf{Chapter 07: Scientific Visualization}}\\[0.5em]
+  {\large \textcolor{hintgray}{Phase Space, Energy Conservation, 3D Plots, and the Kepler Problem}}\\[0.3em]
   {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
 \end{center}
-\vspace{1em}
-\hrule
-\vspace{1.5em}
+\vspace{1em}\hrule\vspace{1.5em}
 
-\section{Welche Plots braucht ein Ingenieur?}
+% ──────────────────────────────────────────────────────────────
+\section{What Plots Actually Tell You}
 
-\begin{theorybox}{Pflicht-Plots für eine Raketensimulation}
-\begin{enumerate}
-  \item \textbf{Trajektorie}: $x$ vs. $y$ — Wo fliegt die Rakete?
-  \item \textbf{Zustandsgrößen}: $v(t)$, $h(t)$, $m(t)$ — Wie entwickelt sich der Zustand?
-  \item \textbf{Kräfte}: $F_T(t)$, $F_D(t)$, $F_g(t)$ — Was treibt die Rakete an, was bremst sie?
-  \item \textbf{Phasenraum}: $v_y$ vs. $h$ — Zeigt Energieübergänge und Orbitinsertion
-  \item \textbf{3D-Perspektive}: Trajektorie als 3D-Plot (auch wenn nur 2D simuliert)
-\end{enumerate}
-\end{theorybox}
-
-\section{Der Phasenraum}
-
-\begin{theorybox}{Was ist der Phasenraum?}
-Der \textbf{Phasenraum} einer ODE $\dot{\mathbf{s}} = f(\mathbf{s})$ ist der Raum aller möglichen Zustände. Ein Plot von $v_y$ vs. $h$ zeigt:
+\begin{theorybox}{The Engineer's Dashboard}
+Raw numbers tell you little. The right plots reveal:
 \begin{itemize}
-  \item Wie sich Höhe und Geschwindigkeit gegenseitig beeinflussen
-  \item Wo Energie umgewandelt wird (potentiell $\leftrightarrow$ kinetisch)
-  \item Ob die Simulation sich einem Fixpunkt (Orbit) oder einem Grenzwert nähert
+  \item \textbf{Trajectory} ($x$ vs $y$): Is the flight path physically reasonable?
+  \item \textbf{State time histories} ($v(t)$, $h(t)$, $m(t)$): Are transitions smooth? Are there unexpected jumps?
+  \item \textbf{Phase space} ($v_y$ vs $h$): Reveals the energy structure of the flight
+  \item \textbf{Force decomposition}: What fraction of thrust is lost to drag and gravity at each moment?
+  \item \textbf{Energy budget}: Is mechanical energy increasing at the right rate?
 \end{itemize}
 \end{theorybox}
 
-\section{Makie.jl für 3D-Visualisierung}
+% ──────────────────────────────────────────────────────────────
+\section{Phase Space and Phase Portraits}
 
-\begin{theorybox}{Warum GLMakie?}
+\begin{theorybox}{The Phase Plane}
+For an ODE $\ddot{x} = f(x, \dot{x})$, the \textbf{phase plane} is the $(x, \dot{x})$ space.
+Each solution $x(t)$ traces a \textbf{phase portrait} curve in this plane.
+
+For the rocket, plotting $v_y$ vs $h$ shows:
 \begin{itemize}
-  \item Interaktive 3D-Plots mit Rotation und Zoom
-  \item Animationen mit \texttt{@animate} oder \texttt{Observable}
-  \item Hochwertige Grafiken für Publikationen und Präsentationen
+  \item Powered ascent: both $h$ and $v_y$ increase
+  \item Unpowered coast: $v_y$ decreases as gravity decelerates the rocket
+  \item Apoapsis: $v_y = 0$ at maximum $h$
+  \item Re-entry (if simulated): $v_y < 0$ as rocket falls
 \end{itemize}
-\texttt{Plots.jl} ist für statische 2D-Plots ideal; \texttt{GLMakie.jl} für 3D und Interaktivität.
 \end{theorybox}
 
-\section{Rechenaufgaben}
+% ──────────────────────────────────────────────────────────────
+\section{Mechanical Energy}
 
-\begin{exercisebox}{1 — Phasenraum interpretieren}
-Ein Plot von $v_y$ (y-Achse) vs. $h$ (x-Achse) zeigt zwei charakteristische Phasen:
-\begin{itemize}
-  \item Phase A: $h$ steigt, $v_y$ steigt
-  \item Phase B: $h$ steigt weiter, aber $v_y$ sinkt
-\end{itemize}
-\textbf{a)} Was passiert physikalisch in Phase A? (Triebwerk aktiv? Welche Kraft dominiert?)\\[0.5em]
-\textbf{b)} Was passiert in Phase B? Ist das Triebwerk noch an?\\[0.5em]
-\textbf{c)} Wann ist $v_y = 0$ bei maximalem $h$ (Apogäum)? Wo liegt dieser Punkt im Phasenraum?
+\begin{theorybox}{Specific Mechanical Energy}
+The specific energy (per kg) has two components:
+\[
+  e(t) = \underbrace{\frac{1}{2}(v_x^2 + v_y^2)}_{e_\text{kin}} + \underbrace{g_0\,y}_{e_\text{pot}}
+\]
+Without thrust and drag, $e$ would be conserved. With thrust:
+\[
+  \frac{de}{dt} = \underbrace{\mathbf{F}_T \cdot \mathbf{v} / m}_{\text{power input from thrust}} - \underbrace{\mathbf{F}_D \cdot \mathbf{v} / m}_{\text{power dissipated by drag} \geq 0}
+\]
+\textbf{Power input from thrust:} $P = T\,|\mathbf{v}|\cos\alpha_\text{AoA}$\\
+Maximum power when thrust aligns with velocity — this is the Oberth effect.
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{The Kepler Problem: ODEs of Orbital Mechanics}
+
+\begin{theorybox}{Two-Body Gravity ODE}
+For a spacecraft at position $\mathbf{r} = (x,y)$ from Earth's centre, gravity gives:
+\[
+  \ddot{\mathbf{r}} = -\frac{\mu}{|\mathbf{r}|^3}\mathbf{r}, \qquad \mu = G M_E = 3.986\times 10^{14}\;\text{m}^3/\text{s}^2
+\]
+This 2nd order ODE becomes 4D first order:
+\[
+  \frac{d}{dt}\begin{pmatrix}x\\y\\v_x\\v_y\end{pmatrix}
+  = \begin{pmatrix}v_x\\v_y\\-\mu x/r^3\\-\mu y/r^3\end{pmatrix}, \quad r = \sqrt{x^2+y^2}
+\end{pmatrix}
+\]
+\textbf{Conserved quantities:} specific energy $\mathcal{E} = v^2/2 - \mu/r$ and angular momentum $L = |\mathbf{r}\times\mathbf{v}|$.
+A perfectly integrated orbit should show $\mathcal{E} = \text{const}$ — use this to validate your integrator!
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{Exercises}
+
+\begin{exercisebox}{1 — Phase Space Analysis}
+A rocket rises vertically (no horizontal motion) from $y=0$ with constant net upward acceleration $a = 5\;\text{m/s}^2$ for $t \in [0, 100\;\text{s}]$, then coasts (engine off) until it reaches apoapsis.
+
+\textbf{a)} During powered phase: $v_y(t) = at$, $y(t) = \frac{1}{2}at^2$.
+Eliminate $t$ to get $v_y$ as a function of $y$ during the powered phase:
+\[
+  v_y = \sqrt{2a\,y}
+\]
+Show this derivation.
+
+\textbf{b)} At end of powered phase ($t=100\;\text{s}$): compute $v_{y,0}$ and $y_0$.
+
+\textbf{c)} During coast phase (engine off, $\dot{v}_y = -g$):
+\[
+  \frac{dv_y}{dy} = \frac{\dot{v}_y}{\dot{y}} = \frac{-g}{v_y}
+  \;\Rightarrow\; v_y\,dv_y = -g\,dy
+\]
+Integrate to find $v_y(y)$ during coast. What is the shape of this curve in phase space?
+
+\textbf{d)} Sketch the complete $(y, v_y)$ phase portrait — powered arc and coast arc — in the grid below:
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=7cm,
+  xlabel={Altitude $y$ (km)}, ylabel={$v_y$ (m/s)},
+  xmin=0, xmax=400, ymin=-100, ymax=600,
+  grid=both, grid style={line width=0.3pt, draw=gray!30},
+  major grid style={line width=0.6pt, draw=gray!60},
+  title={Phase Portrait: $v_y$ vs $y$}
+]
+\end{axis}
+\end{tikzpicture}
+\end{center}
 \end{exercisebox}
 
-\begin{solutionspace}[6cm]
+\begin{solutionspace}[5cm]
 \end{solutionspace}
 
-\begin{exercisebox}{2 — Energiebilanz}
-Die spezifische mechanische Energie ist:
+\begin{exercisebox}{2 — Energy Conservation Check}
+During a coast phase (no thrust, no drag), the specific mechanical energy
+$e = \frac{1}{2}v^2 + g_0 y$ should be conserved.
+
+\textbf{a)} Show analytically: differentiate $e$ with respect to $t$ during coast
+(use equations of motion $\dot{y} = v_y$, $\dot{v}_y = -g$):
 \[
-  E(t) = \frac{1}{2}\left(v_x^2 + v_y^2\right) + g_0\,h
+  \frac{de}{dt} = v_y\dot{v}_y + g_0\dot{y} = v_y(-g_0) + g_0\,v_y = \underline{\hspace{3cm}}
 \]
-(spezifisch = pro kg)\\[0.5em]
-\textbf{a)} Berechne $E(t=0)$ für eine Rakete die an der Startrampe steht.\\[0.5em]
-\textbf{b)} Für LEO gilt: $E_\text{LEO} \approx \frac{1}{2}v_\text{LEO}^2 + g\,h_\text{LEO}$ mit $v_\text{LEO}=7800\,\text{m/s}$, $h_\text{LEO}=400\,000\,\text{m}$.\\
-Berechne $E_\text{LEO}$ und interpretiere das Ergebnis.\\[0.5em]
-\textbf{c)} Das Triebwerk liefert die Leistung $P = T \cdot v$. Warum steigt die Effizienz mit der Geschwindigkeit? (Stichwort: Oberth-Effekt)
+
+\textbf{b)} In your simulation, after MECO (main engine cutoff), extract $e(t)$ along the coast arc.
+If the integrator is working correctly, $e$ should be constant to within $\mathcal{O}(h^4)$.
+For $h_\text{step} = 1\;\text{s}$, the expected drift in $e$ per second is $\mathcal{O}(h^4) \approx ?$
+
+\textbf{c)} Compute the specific orbital energy at LEO ($h = 400\;\text{km}$, $v = 7670\;\text{m/s}$):
+\[
+  e_\text{LEO} = \frac{1}{2}(7670)^2 + 9.807\times 400\,000 = \underline{\hspace{3cm}}\;\text{J/kg}
+\]
+Why is this much larger than the energy at launch ($e_0 = 0$)?
 \end{exercisebox}
 
 \begin{solutionspace}[7cm]
 \end{solutionspace}
 
-\begin{exercisebox}{3 — 3D-Erweiterungsgedanke}
-Unsere Simulation ist 2D. Für eine echte 3D-Simulation bräuchten wir:
+\begin{exercisebox}{3 — The Kepler ODE: Orbital Integration}
+Set up the Kepler ODE and integrate a circular orbit.
+
+\textbf{a)} For a circular orbit at altitude $h = 400\;\text{km}$ above Earth:
 \[
-  \mathbf{s} = [x, y, z, v_x, v_y, v_z, m]^\top \quad (7\text{-dimensional})
+  r = R_E + h = \underline{\hspace{3cm}}\;\text{m}
 \]
-\textbf{a)} Welche zusätzliche Kraft/Größe käme in 3D hinzu, die in 2D fehlt? (Stichwort: Coriolis, Azimut)\\[0.5em]
-\textbf{b)} Was ist der Unterschied zwischen einem \textbf{polare Orbit} (Inklinationswinkel $\approx 90°$) und einem \textbf{äquatorialen Orbit} ($0°$)?\\[0.5em]
-\textbf{c)} Warum starten die meisten Raketen möglichst nah am Äquator (z.B. Cape Canaveral)?\\
-\textit{Hinweis: Erdrotation!}
+Circular velocity: $v_c = \sqrt{\mu/r}$, $\mu = 3.986\times 10^{14}$.
+\[
+  v_c = \sqrt{\frac{3.986\times 10^{14}}{\underline{\hspace{2cm}}}} = \underline{\hspace{3cm}}\;\text{m/s}
+\]
+
+\textbf{b)} Initial conditions for circular orbit (start at 3 o'clock, velocity pointing up):
+\[
+  \mathbf{s}_0 = [r,\; 0,\; 0,\; v_c]^\top
+\]
+Write out the ODE $\dot{\mathbf{s}} = f(\mathbf{s})$ explicitly for these initial conditions.
+
+\textbf{c)} Orbital period: $T = 2\pi r / v_c = \underline{\hspace{3cm}}\;\text{s} \approx \underline{\hspace{2cm}}\;\text{min}$
+
+\textbf{d)} After integrating exactly one period with RK4, the rocket should return to $\mathbf{s}_0$.
+The position error after one orbit is a measure of the integrator's accuracy.
+Predict the order-of-magnitude error for $h_\text{step} = 10\;\text{s}$ using the RK4 global error formula.
 \end{exercisebox}
 
-\begin{solutionspace}[6cm]
+\begin{solutionspace}[9cm]
 \end{solutionspace}
 
-\section{Verbindung zum Julia-Template}
+\begin{exercisebox}{4 — Force Budget Visualization}
+At each time step in the simulation, compute three power quantities (power = force $\times$ velocity):
+\[
+  P_T(t) = \mathbf{F}_T \cdot \mathbf{v} = T(v_x\cos\theta + v_y\sin\theta)
+\]
+\[
+  P_D(t) = -\mathbf{F}_D \cdot \mathbf{v} = F_D\,|\mathbf{v}| \geq 0 \quad \text{(always dissipated)}
+\]
+\[
+  P_\text{grav}(t) = -m\,g\,v_y \quad \text{(work done against gravity)}
+\]
 
-\begin{theorybox}{Was du jetzt implementierst}
-In \texttt{template.jl} (Kapitel 07) erstellst du ein vollständiges Dashboard:
+\textbf{a)} At $t = 0$ ($v = 0$): all power quantities are zero. Why?
+
+\textbf{b)} At Max-Q (maximum dynamic pressure): $P_D$ is at or near its peak. Why?
+
+\textbf{c)} After MECO: $P_T = 0$. Show that $\frac{de}{dt} = -P_D/m - P_\text{grav}/m$.
+When the coast arc reaches apoapsis ($v_y = 0$, $v_x$ = peak), what happens to $P_\text{grav}$?
+
+\textbf{d)} Sketch qualitatively $P_T(t)$, $P_D(t)$ vs time on the same axes.
+At what phase of flight is the gap $P_T - P_D$ largest?
+\end{exercisebox}
+
+\begin{solutionspace}[8cm]
+\end{solutionspace}
+
+\begin{exercisebox}{5 — 3D Extension: What Would Change? (Challenge)}
+Extend the simulation from 2D to 3D. The state vector becomes:
+\[
+  \mathbf{s} = [x,\; y,\; z,\; v_x,\; v_y,\; v_z,\; m]^\top \in \mathbb{R}^7
+\]
+
+\textbf{a)} Write out the full 7D ODE system. Which equations are identical to the 2D case?
+Which new term appears (hint: Earth's rotation creates a fictitious force)?
+
+\textbf{b)} The \textbf{Coriolis acceleration} for a rocket at latitude $\phi$ moving with velocity $\mathbf{v}$:
+\[
+  \mathbf{a}_\text{Cor} = -2\boldsymbol{\Omega}\times\mathbf{v}, \quad |\boldsymbol{\Omega}| = 7.292\times 10^{-5}\;\text{rad/s}
+\]
+For a rocket flying north ($v_y = 500\;\text{m/s}$) at the equator, compute the Coriolis acceleration magnitude and direction.
+
+\textbf{c)} Cape Canaveral is at $28.5°\;\text{N}$ latitude. The Earth's surface rotational speed there is:
+\[
+  v_\text{rot} = R_E\,|\boldsymbol{\Omega}|\cos(28.5°) = \underline{\hspace{3cm}}\;\text{m/s}
+\]
+How much of this rotational speed contributes to the LEO $\Delta v$ budget if launching \textit{due east}?
+\end{exercisebox}
+
+\begin{solutionspace}[9cm]
+\end{solutionspace}
+
+% ──────────────────────────────────────────────────────────────
+\section{Resources}
+
+\begin{hintbox}
+\textbf{Videos:}
+\begin{itemize}
+  \item \textbf{3Blue1Brown} — ``Visualizing the Riemann hypothesis and analytic continuation'' (phase plots):\\
+        \texttt{youtube.com/watch?v=sD0NjbwqlYw}
+  \item \textbf{3Blue1Brown} — ``But what is a Fourier series?'' (same visualization mindset)
+  \item \textbf{Makie.jl tutorials} — official docs with 3D examples:\\
+        \texttt{docs.makie.org/stable/tutorials/}
+  \item \textbf{MIT OCW 18.03} — Phase plane analysis:\\
+        \texttt{ocw.mit.edu/courses/18-03sc-differential-equations-fall-2011/pages/unit-ii-second-order-constant-coefficient-linear-equations/phase-diagrams}
+\end{itemize}
+\textbf{Reference:}
+\begin{itemize}
+  \item Strogatz, \textit{Nonlinear Dynamics and Chaos} (best book on phase portraits)
+  \item \texttt{matplotlib.org/stable/gallery/mplot3d} (if you prefer Python for 3D)
+\end{itemize}
+\end{hintbox}
+
+\section{Connection to the Julia Template}
+
+\begin{theorybox}{What you implement in \texttt{template.jl}}
 \begin{enumerate}
-  \item \textbf{6-Panel Dashboard}: Trajektorie, $h(t)$, $v(t)$, $m(t)$, Kräfte, Phasenraum
-  \item \textbf{3D-Plot} mit \texttt{GLMakie}: Trajektorie als 3D-Kurve (z=0), rotierbar
-  \item \textbf{Animation}: Rakete bewegt sich entlang der Trajektorie
-  \item \textbf{Energie-Plot}: $E_\text{kin}(t)$, $E_\text{pot}(t)$, $E_\text{total}(t)$
+  \item \textbf{6-panel dashboard:} trajectory, $h(t)$, $|v|(t)$, $m(t)$, phase space $(v_y$ vs $h)$, energy $e(t)$
+  \item \textbf{Force budget plot:} $P_T(t)$, $P_D(t)$, $P_\text{grav}(t)$ overlaid
+  \item \textbf{Kepler orbit:} Implement Kepler ODE, integrate one orbit, plot $x$ vs $y$, check energy conservation
+  \item \textbf{3D plot} with GLMakie: trajectory as 3D curve (z=0 for our 2D case, but framework ready for 3D)
+  \item \textbf{Animation:} rocket moving along trajectory
 \end{enumerate}
-Das ist dein Showcase — der Plot den du jemandem zeigst.
+This chapter's template is your \textbf{final showcase} — everything from all previous chapters combined into one polished visualisation.
 \end{theorybox}
 
 \end{document}

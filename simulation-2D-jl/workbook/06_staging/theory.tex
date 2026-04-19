@@ -4,128 +4,239 @@
 \begin{document}
 
 \begin{center}
-  {\LARGE \textbf{Kapitel 06: Mehrstufige Raketen}}\\[0.5em]
-  {\large \textcolor{hintgray}{Stufentrennung, Tsiolkovsky und die Kunst des Massenmanagements}}\\[0.3em]
+  {\LARGE \textbf{Chapter 06: Multi-Stage Rockets}}\\[0.5em]
+  {\large \textcolor{hintgray}{Staging Equations, Mass Optimization, and Discontinuous ODEs}}\\[0.3em]
   {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
 \end{center}
-\vspace{1em}
-\hrule
-\vspace{1.5em}
+\vspace{1em}\hrule\vspace{1.5em}
 
-\section{Warum mehrere Stufen?}
+% ──────────────────────────────────────────────────────────────
+\section{Why Staging is Necessary}
 
-\begin{theorybox}{Das Massenproblem}
-Die Tsiolkovsky-Gleichung zeigt: Um $\Delta v$ zu maximieren, muss das Massenverhältnis $m_0/m_f$ groß sein. Aber ein Tank, der 90\% seines Gewichts als Treibstoff trägt, ist schwer zu bauen.\\[0.5em]
-\textbf{Lösung: Stufentrennung.} Leere Tanks werden abgeworfen, sodass nur nützliche Masse weiter beschleunigt wird.
+\begin{theorybox}{The Mass Fraction Problem}
+For a single-stage rocket to reach LEO, we need $\Delta v \approx 9400\;\text{m/s}$.
+With $v_e = 3200\;\text{m/s}$ (RP-1/LOX):
+\[
+  \frac{m_0}{m_f} = e^{9400/3200} = e^{2.9375} \approx 18.9
+\]
+So 94.7\% of the launch mass must be propellant. The structural fraction (tanks, engines, plumbing) for real rockets is at least 5–10\% of total mass.\\[0.4em]
+Structural fraction $\varepsilon = 5\%$ of propellant mass $\Rightarrow$ only $\approx 0.3\%$ is payload.\\[0.4em]
+\textbf{Staging solves this}: discard empty tanks to stop carrying dead mass.
 \end{theorybox}
 
-\begin{theorybox}{Massenverhältnis und Strukturkoeffizient}
+% ──────────────────────────────────────────────────────────────
+\section{Multi-Stage Rocket Equation}
+
+\begin{theorybox}{$\Delta v$ for $n$ Stages}
+Each stage fires independently and is then jettisoned. The total $\Delta v$ is additive:
 \[
-  \varepsilon = \frac{m_\text{dry}}{m_\text{stage}} = \frac{\text{Trockenmasse}}{\text{gesamte Stufenmasse}}
+  \Delta v_\text{total} = \sum_{i=1}^n v_{e,i}\,\ln\frac{m_{0,i}}{m_{f,i}}
 \]
-Typische Werte: $\varepsilon \approx 0{,}05$--$0{,}15$ (5--15\% der Stufe ist Struktur).\\[0.5em]
-Nutzbares Massenverhältnis einer Stufe:
-\[
-  \frac{m_0}{m_f} = \frac{1}{\varepsilon}
-\]
+where $m_{0,i}$ includes all stages above (plus payload) at the start of stage $i$,
+and $m_{f,i}$ excludes the dry mass of stage $i$ just before separation.
 \end{theorybox}
 
-\section{Das DGL-System mit Stufentrennung}
+\subsection*{Structural Coefficient}
 
-\begin{theorybox}{Diskontinuität im Massenfluss}
-Bei Stufentrennung zum Zeitpunkt $t^*$ springt die Masse diskontinuierlich:
+\begin{theorybox}{Definition}
 \[
-  m(t^{*+}) = m(t^{*-}) - m_\text{stage,dry}
+  \varepsilon_i = \frac{m_{\text{dry},i}}{m_{\text{wet},i}} = \frac{\text{empty stage mass}}{\text{full stage mass including fuel}}
 \]
-Das DGL-System ist für $t > t^*$ mit neuen Parametern (Schub, Massenstrom, Fläche) identisch aufgebaut — nur die Stufe wechselt.\\[0.5em]
-In der Implementierung: \textbf{Event detection} — prüfe nach jedem RK4-Schritt ob $m_\text{fuel} \leq 0$.
+Typical values: $\varepsilon \approx 0.05$–$0.12$.
+
+The mass ratio for stage $i$ alone:
+\[
+  \mu_i = \frac{m_{\text{wet},i}}{m_{\text{dry},i}} = \frac{1}{\varepsilon_i}
+\]
+Stage $\Delta v$ alone: $\Delta v_i = v_e\ln\mu_i = v_e\ln(1/\varepsilon_i)$
 \end{theorybox}
 
-\section{Rechenaufgaben}
+% ──────────────────────────────────────────────────────────────
+\section{Optimal Staging}
 
-\begin{exercisebox}{1 — Zweistufige Rakete: Optimales Massenverhältnis}
-Eine zweistufige Rakete mit Gesamtstartmasse $M = 300\,000\,\text{kg}$, $v_e = 3200\,\text{m/s}$.\\
-Die Nutzlast (Payload) hat $m_\text{PL} = 10\,000\,\text{kg}$.\\
-Beide Stufen haben denselben Strukturkoeffizienten $\varepsilon = 0{,}08$.\\[0.5em]
-
-\textbf{a)} Wenn Stufe 1 die Masse $m_1$ und Stufe 2 die Masse $m_2$ hat mit $m_1 + m_2 + m_\text{PL} = M$:\\
-Zeige, dass das maximale $\Delta v_\text{total}$ erreicht wird wenn $m_1/m_2 = \text{const}$.\\[0.5em]
-
-\textbf{b)} Für $m_1 = 240\,000\,\text{kg}$, $m_2 = 50\,000\,\text{kg}$:\\
+\begin{theorybox}{Equal-Stage Optimality}
+For $n$ stages with identical $v_e$ and $\varepsilon$, the maximum total $\Delta v$ is achieved when all stages are geometrically similar (same mass ratio). The total $\Delta v$:
 \[
-  \Delta v_1 = v_e \ln\!\left(\frac{m_1}{m_1\cdot\varepsilon}\right) = \underline{\hspace{4cm}}\,\text{m/s}
+  \Delta v_\text{total} = n\cdot v_e\,\ln\!\left(\frac{1}{\varepsilon}\right)
 \]
+This scales \textit{linearly} with $n$ — but diminishing returns apply because of the overhead of additional stages (complexity, separation mechanisms, interstage mass).
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{Discontinuities in the ODE}
+
+\begin{theorybox}{Stage Separation as an Event}
+At separation time $t^*$, the mass drops instantaneously:
 \[
-  \Delta v_2 = v_e \ln\!\left(\frac{m_2}{m_2\cdot\varepsilon}\right) = \underline{\hspace{4cm}}\,\text{m/s}
+  m(t^{*-}) = m(t^{*+}) + m_{\text{dry, stage}}
 \]
+This is a \textbf{discontinuity} in the state — the ODE changes character at $t^*$.
+
+In numerical integration: after every RK4 step, check if the active stage's fuel $\leq 0$.
+If yes:
+\begin{enumerate}
+  \item Subtract $m_\text{dry}$ from the current mass
+  \item Switch to next stage parameters ($T$, $\dot{m}$, $A$)
+  \item Continue integration with new parameters
+\end{enumerate}
+\textbf{Important:} Do not ``straddle'' the discontinuity with a RK4 step — it corrupts the solution.
+Ideally, stop exactly at $m_\text{fuel} = 0$ using event detection (bisection on $t^*$).
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{Exercises}
+
+\begin{exercisebox}{1 — Full Tsiolkovsky Derivation for 2 Stages}
+A 2-stage rocket with payload $m_L = 13\,150\;\text{kg}$.\\
+Stage 2: $m_{\text{wet},2} = 92\,670\;\text{kg}$, $\varepsilon_2 = 0.043$, $v_{e,2} = 3\,430\;\text{m/s}$.\\
+Stage 1: $m_{\text{wet},1} = 418\,930\;\text{kg}$, $\varepsilon_1 = 0.051$, $v_{e,1} = 3\,050\;\text{m/s}$.
+
+\textbf{a)} Compute $m_{\text{dry},2} = \varepsilon_2 \cdot m_{\text{wet},2}$:
 \[
-  \Delta v_\text{total} = \underline{\hspace{4cm}}\,\text{m/s}
+  m_{\text{dry},2} = 0.043 \times 92\,670 = \underline{\hspace{3cm}}\;\text{kg}
 \]
 
-\textbf{c)} Vergleiche mit einer einstufigen Rakete gleicher Masse. Was ist der Unterschied?
+\textbf{b)} At the start of stage 2, the total mass is $m_{\text{wet},2} + m_L$. At burnout, it is $m_{\text{dry},2} + m_L$.
+\[
+  \Delta v_2 = 3430\cdot\ln\!\left(\frac{92\,670 + 13\,150}{m_{\text{dry},2} + 13\,150}\right) = \underline{\hspace{5cm}}\;\text{m/s}
+\]
+
+\textbf{c)} At the start of stage 1, total mass is $m_{\text{wet},1} + m_{\text{wet},2} + m_L$.
+At burnout (just before separation), it is $m_{\text{dry},1} + m_{\text{wet},2} + m_L$.
+\[
+  \Delta v_1 = 3050\cdot\ln\!\left(\frac{418\,930 + 92\,670 + 13\,150}{m_{\text{dry},1} + 92\,670 + 13\,150}\right) = \underline{\hspace{3cm}}\;\text{m/s}
+\]
+
+\textbf{d)} Total ideal $\Delta v$: \underline{\hspace{3cm}} m/s. Compare to the target of $9400\;\text{m/s}$.
 \end{exercisebox}
 
-\begin{solutionspace}[8cm]
+\begin{solutionspace}[10cm]
 \end{solutionspace}
 
-\begin{exercisebox}{2 — Zeitpunkt der Stufentrennung}
-Stufe 1: $m_\text{wet} = 240\,000\,\text{kg}$, $m_\text{dry} = 19\,200\,\text{kg}$, $\dot{m} = 2200\,\text{kg/s}$.\\[0.5em]
-\textbf{a)} Wie viel Treibstoff hat Stufe 1?
+\begin{exercisebox}{2 — Separation Timing}
+Stage 1: $m_{\text{wet},1} = 418\,930\;\text{kg}$, $m_{\text{dry},1} = 21\,200\;\text{kg}$, $\dot{m}_1 = 2530\;\text{kg/s}$.
+
+\textbf{a)} Available propellant in stage 1:
 \[
-  m_\text{fuel,1} = m_\text{wet,1} - m_\text{dry,1} = \underline{\hspace{4cm}}\,\text{kg}
+  m_{\text{prop},1} = m_{\text{wet},1} - m_{\text{dry},1} = \underline{\hspace{3cm}}\;\text{kg}
 \]
-\textbf{b)} Wann (nach wieviel Sekunden nach Start) ist Stufe 1 leer?
+
+\textbf{b)} Burnout time (time from ignition until stage 1 propellant is exhausted):
 \[
-  t_\text{sep} = \frac{m_\text{fuel,1}}{\dot{m}_1} = \underline{\hspace{4cm}}\,\text{s}
+  t_\text{MECO1} = \frac{m_{\text{prop},1}}{\dot{m}_1} = \underline{\hspace{3cm}}\;\text{s}
 \]
-\textbf{c)} Die Gesamtmasse direkt vor Trennung (inkl. Stufe 2 + Payload):
+
+\textbf{c)} Just before separation, the total rocket mass is:
 \[
-  m(t_\text{sep}^-) = \underline{\hspace{4cm}}\,\text{kg}
+  m(t_\text{MECO1}^-) = m_{\text{dry},1} + m_{\text{wet},2} + m_L = \underline{\hspace{3cm}}\;\text{kg}
 \]
-\textbf{d)} Die Gesamtmasse direkt nach Trennung (Trockenmasse Stufe 1 abgeworfen):
+Just after (stage 1 dry mass jettisoned):
 \[
-  m(t_\text{sep}^+) = \underline{\hspace{4cm}}\,\text{kg}
+  m(t_\text{MECO1}^+) = m_{\text{wet},2} + m_L = \underline{\hspace{3cm}}\;\text{kg}
+\]
+
+\textbf{d)} What fraction of launch mass has been discarded by this point?
+\[
+  \frac{m_0 - m(t_\text{MECO1}^+)}{m_0} = \underline{\hspace{3cm}}
 \]
 \end{exercisebox}
 
-\begin{solutionspace}[6cm]
+\begin{solutionspace}[7cm]
 \end{solutionspace}
 
-\begin{exercisebox}{3 — Konzept: Warum nicht 3, 4, 5 Stufen?}
-\textbf{a)} Berechne $\Delta v_\text{total}$ für 1, 2, 3 gleiche Stufen mit je $\varepsilon = 0{,}08$, $v_e = 3200\,\text{m/s}$, gleiche Gesamtmasse.\\[0.5em]
-\textit{Hinweis: Bei $n$ gleichen Stufen gilt $\Delta v_\text{total} = n \cdot v_e \ln(1/\varepsilon)$.}
+\begin{exercisebox}{3 — Staging Benefit: 1 vs 2 vs 3 Stages}
+Same total $\Delta v_\text{target} = 9400\;\text{m/s}$, $v_e = 3200\;\text{m/s}$, $m_L = 13\,150\;\text{kg}$, $\varepsilon = 0.06$.
 
+For $n$ equal stages, the payload fraction is:
+\[
+  \lambda = \frac{m_L}{m_0} = \left[\varepsilon + (1-\varepsilon)\,e^{-\Delta v / (n\,v_e)}\right]^n
+\]
+
+\textbf{a)} For $n=1$:
+\[
+  \lambda = \varepsilon + (1-\varepsilon)\,e^{-9400/3200} = \underline{\hspace{4cm}}
+\]
+Launch mass: $m_0 = m_L / \lambda = \underline{\hspace{3cm}}\;\text{kg}$
+
+\textbf{b)} For $n=2$ (each stage has $\Delta v/2 = 4700\;\text{m/s}$):
+\[
+  \lambda = \left[\varepsilon + (1-\varepsilon)\,e^{-4700/3200}\right]^2 = \underline{\hspace{4cm}}
+\]
+Launch mass: $m_0 = \underline{\hspace{3cm}}\;\text{kg}$
+
+\textbf{c)} For $n=3$ (each $\Delta v/3 \approx 3133\;\text{m/s}$):
+\[
+  \lambda = \left[\varepsilon + (1-\varepsilon)\,e^{-3133/3200}\right]^3 = \underline{\hspace{4cm}}
+\]
+
+\textbf{d)} Tabulate and discuss the diminishing returns of adding stages:
 \begin{center}
-\begin{tabular}{|c|c|}
+\begin{tabular}{|c|c|c|c|}
 \hline
-Stufen $n$ & $\Delta v_\text{total}$ (m/s) \\
+Stages $n$ & Payload fraction $\lambda$ & Launch mass $m_0$ (kg) & Reduction vs $n-1$ \\
 \hline
-1 & \\
+1 & & & — \\
 \hline
-2 & \\
+2 & & & \\
 \hline
-3 & \\
+3 & & & \\
 \hline
 \end{tabular}
 \end{center}
-
-\textbf{b)} Warum nutzen reale Raketen selten mehr als 3 Stufen?\\
-(Denke an: Zuverlässigkeit, Komplexität, abnehmender Grenznutzen)
 \end{exercisebox}
 
-\begin{solutionspace}[6cm]
+\begin{solutionspace}[10cm]
 \end{solutionspace}
 
-\section{Verbindung zum Julia-Template}
+\begin{exercisebox}{4 — Velocity at Stage Separation: Energy Conservation}
+Just before separation, the rocket has velocity $|\mathbf{v}| = v_\text{sep}$ and altitude $h_\text{sep}$.
+The stage 1 casing (mass $m_{\text{dry},1}$) becomes a ballistic projectile.
 
-\begin{theorybox}{Was du jetzt implementierst}
-In \texttt{template.jl} (Kapitel 06) implementierst du:
+\textbf{a)} Given $v_\text{sep} = 2200\;\text{m/s}$, $h_\text{sep} = 70\;\text{km}$, $\theta_\text{sep} = 30°$ (from horizontal):
+Find the horizontal and vertical velocity components at separation.
+
+\textbf{b)} Using energy conservation (ignore drag), find the maximum altitude the stage casing reaches:
+\[
+  h_\text{max} = h_\text{sep} + \frac{v_y^2}{2g} = \underline{\hspace{4cm}}\;\text{km}
+\]
+
+\textbf{c)} Estimate the downrange distance where the stage casing lands (ballistic trajectory from $h_\text{sep}$).
+\textit{Hint: Time of flight from $h_\text{sep}$ back to sea level, then multiply by $v_x$.}
+\end{exercisebox}
+
+\begin{solutionspace}[9cm]
+\end{solutionspace}
+
+% ──────────────────────────────────────────────────────────────
+\section{Resources}
+
+\begin{hintbox}
+\textbf{Videos:}
+\begin{itemize}
+  \item \textbf{Everyday Astronaut} — ``Why multi-staging?'' (very accessible):\\
+        \texttt{youtube.com/c/EverydayAstronaut}
+  \item \textbf{Scott Manley} — ``How Falcon 9 stages work'' (engineering detail):\\
+        Search: ``Scott Manley Falcon 9 staging''
+  \item \textbf{MIT OpenCourseWare} — 16.06 ``Principles of Automatic Control'' Lecture 2\\
+        (covers event detection and hybrid systems, relevant for staging logic)
+\end{itemize}
+\textbf{Reference:}
+\begin{itemize}
+  \item Curtis, \textit{Orbital Mechanics for Engineering Students}, Ch.\ 1 (rocket staging)
+  \item \texttt{braeunig.us/space/rocket.htm} — Rocket staging calculations
+\end{itemize}
+\end{hintbox}
+
+\section{Connection to the Julia Template}
+
+\begin{theorybox}{What you implement in \texttt{template.jl}}
 \begin{enumerate}
-  \item \texttt{Stage}-Struct mit $(m_\text{wet}, m_\text{dry}, T, \dot{m}, A)$
-  \item Staging-Logik: nach jedem RK4-Schritt prüfen ob Stufe leer
-  \item Vollständige 2-stufige Simulation mit Gravity Turn
-  \item Plot: Masse vs. Zeit mit Markierung der Stufentrennung
-  \item Vergleich: $\Delta v_\text{ideal}$ (Tsiolkovsky) vs. $\Delta v_\text{simuliert}$
+  \item \texttt{Stage} struct with all physical parameters
+  \item \texttt{simulate\_multistage} with post-step staging check
+  \item Full 2-stage simulation with realistic Falcon 9 parameters
+  \item Plot: mass vs time (with visible discontinuous jumps at separation)
+  \item Terminal output: Tsiolkovsky ideal $\Delta v$ vs simulated $\Delta v$ — compute both losses
+  \item \textbf{Challenge:} Add a ``coasting'' phase between stages (engine-off glide before stage 2 ignition)
 \end{enumerate}
 \end{theorybox}
 

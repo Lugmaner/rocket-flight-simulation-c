@@ -4,164 +4,276 @@
 \begin{document}
 
 \begin{center}
-  {\LARGE \textbf{Kapitel 05: Der Gravity Turn}}\\[0.5em]
-  {\large \textcolor{hintgray}{Wie Raketen ihren Pitchwinkel steuern und in einen Orbit gelangen}}\\[0.3em]
+  {\LARGE \textbf{Chapter 05: The Gravity Turn}}\\[0.5em]
+  {\large \textcolor{hintgray}{Optimal Trajectories, Pitch Programs, and the Tsiolkovsky Rocket Equation}}\\[0.3em]
   {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
 \end{center}
-\vspace{1em}
-\hrule
-\vspace{1.5em}
+\vspace{1em}\hrule\vspace{1.5em}
 
-\section{Was ist ein Gravity Turn?}
+% ──────────────────────────────────────────────────────────────
+\section{The Tsiolkovsky Rocket Equation — Full Derivation}
 
-\begin{theorybox}{Grundprinzip}
-Beim \textbf{Gravity Turn} wird die Rakete nicht aktiv um eine Achse gesteuert. Stattdessen:
-\begin{enumerate}
-  \item Die Rakete startet \textbf{senkrecht} ($\theta = 90°$)
-  \item Nach einer kurzen Vertikalphase wird ein kleiner \textbf{Kick-Winkel} eingeleitet
-  \item Die Schwerkraft dreht den Geschwindigkeitsvektor langsam zur Horizontale
-  \item Der Schubvektor folgt dem Geschwindigkeitsvektor (minimaler Anstellwinkel)
-\end{enumerate}
-\textbf{Vorteil:} Minimaler aerodynamischer Stress. Die Rakete ``fällt'' in ihre Trajektorie.
-\end{theorybox}
+\begin{theorybox}{Starting Point: Newton's 2nd Law for a Variable-Mass System}
+Consider the rocket at time $t$ with mass $m$ and velocity $v$ (1D, no drag, no gravity for now).
+In time $dt$, mass $dm_e = -dm > 0$ is expelled at velocity $v - v_e$ (absolute frame), where $v_e > 0$ is the exhaust speed relative to the rocket.
 
-\section{Pitchwinkel-Strategien}
-
-\begin{theorybox}{Strategie 1: Lineares Pitchprogramm}
+\textbf{Conservation of momentum:}
 \[
-\theta(t) =
-\begin{cases}
-  90° & t \leq t_\text{kick} \\
-  90° - \dfrac{90° - \theta_\text{end}}{t_\text{end} - t_\text{kick}}\,(t - t_\text{kick}) & t_\text{kick} < t \leq t_\text{end} \\
-  \theta_\text{end} & t > t_\text{end}
-\end{cases}
+  m\,v = (m + dm)(v + dv) + (-dm)(v - v_e)
 \]
-Einfach, aber nicht optimal. Gut zum Lernen.
+Expand and drop $dm\,dv$ (second order small):
+\[
+  m\,v = m\,v + m\,dv + v\,dm + dv\,dm - v\,dm + v_e\,dm
+\]
+\[
+  0 = m\,dv + v_e\,dm
+\]
 \end{theorybox}
 
-\begin{theorybox}{Strategie 2: Velocity-Vector Tracking}
-Der Pitchwinkel folgt dem \textbf{Geschwindigkeitsvektor}:
+\begin{theorybox}{Integration: The Rocket Equation}
+\[
+  m\,dv = -v_e\,dm \quad\Rightarrow\quad dv = -v_e\,\frac{dm}{m}
+\]
+Integrate from $t=0$ (mass $m_0$, velocity $v_0$) to burnout (mass $m_f$, velocity $v_f$):
+\[
+  \int_{v_0}^{v_f} dv = -v_e\int_{m_0}^{m_f}\frac{dm}{m}
+\]
+\[
+  v_f - v_0 = -v_e\,[\ln m]_{m_0}^{m_f} = -v_e(\ln m_f - \ln m_0) = v_e\ln\frac{m_0}{m_f}
+\]
+\[
+  \boxed{\Delta v = v_e\ln\frac{m_0}{m_f}}
+\]
+This is one of the most important equations in space exploration.
+\end{theorybox}
+
+\begin{theorybox}{Losses: The Real $\Delta v$ Budget}
+In reality, not all propulsive $\Delta v$ goes into useful speed:
+\[
+  \Delta v_\text{ideal} = \Delta v_\text{orbital} + \underbrace{\Delta v_\text{gravity}}_{\text{gravity drag}} + \underbrace{\Delta v_\text{aero}}_{\text{aero drag}} + \underbrace{\Delta v_\text{steer}}_{\text{steering losses}}
+\]
+For LEO ($\approx 9400\;\text{m/s}$ needed): typical split is
+$7800$ orbital + $1200$ gravity drag + $200$ aero drag + $200$ steering.
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{The Gravity Turn}
+
+\begin{theorybox}{Why Not Just Fly Straight Up?}
+A purely vertical ascent maximizes altitude gain per fuel, but achieves no horizontal velocity.
+Orbital insertion requires $v_x \approx 7800\;\text{m/s}$ — all horizontal.
+The challenge: pitch over \textit{efficiently} (minimize steering losses) while building horizontal speed.
+\end{theorybox}
+
+\begin{theorybox}{Gravity Turn: The Elegant Solution}
+After an initial kick at low altitude, the rocket's pitch angle follows the velocity vector:
 \[
   \theta(t) = \arctan\!\left(\frac{v_y}{v_x}\right)
 \]
-Das ist der ``echte'' Gravity Turn — die Rakete richtet sich immer in Flugrichtung aus.
+Gravity continuously curves the velocity vector toward horizontal.\\[0.4em]
+\textbf{Key property:} The angle of attack (between thrust and velocity) is always zero.
+This eliminates aerodynamic side loads and steering losses.\\[0.4em]
+\textbf{Physically:} The rocket is in ``free fall'' horizontally while thrust builds total speed.
 \end{theorybox}
 
-\section{Die Tsiolkovsky-Raketengleichung}
+\subsection*{Linear Pitch Program (Simplified)}
 
-\begin{theorybox}{Ideales $\Delta v$}
-Ohne Schwerkraft und Drag gilt:
+When the velocity-vector tracking starts too early (before building sufficient horizontal speed), the trajectory may not reach orbit. A \textbf{scheduled pitch program} is more controllable:
 \[
-  \Delta v = v_e \ln\!\left(\frac{m_0}{m_f}\right)
+  \theta(t) = \begin{cases}
+    \pi/2 & t \leq t_\text{kick} \\
+    \pi/2 + (\theta_f - \pi/2)\dfrac{t - t_\text{kick}}{t_f - t_\text{kick}} & t_\text{kick} < t \leq t_f \\
+    \theta_f & t > t_f
+  \end{cases}
 \]
-$v_e$: effektive Ausströmgeschwindigkeit, $m_0$: Startmasse, $m_f$: Endmasse (nach Treibstoffverbrauch).\\
-Das ist eine \textbf{obere Schranke} für das erreichbare $\Delta v$ — Drag und Gravitationsverluste reduzieren es.
+
+% ──────────────────────────────────────────────────────────────
+\section{Gravity Loss Integral}
+
+\begin{theorybox}{Quantifying Gravity Drag}
+The gravity drag (velocity lost fighting gravity during vertical component of flight):
+\[
+  \Delta v_\text{grav} = \int_0^{t_\text{MECO}} g(y(t))\sin\theta(t)\,dt
+\]
+For constant $g$ and linear pitch from $90°$ to $0°$ over time $t_f$:
+\[
+  \Delta v_\text{grav} = g\int_0^{t_f}\sin\!\left(\frac{\pi}{2} - \frac{\pi}{2t_f}t\right)dt
+  = g\int_0^{t_f}\cos\!\left(\frac{\pi t}{2t_f}\right)dt
+\]
+Evaluate using $\int\cos(ax)\,dx = \frac{1}{a}\sin(ax)$:
+\[
+  \Delta v_\text{grav} = g\cdot\frac{2t_f}{\pi}\left[\sin\!\left(\frac{\pi t}{2t_f}\right)\right]_0^{t_f}
+  = g\cdot\frac{2t_f}{\pi}(\sin(\pi/2) - \sin(0)) = \frac{2g\,t_f}{\pi}
+\]
+For $t_f = 150\;\text{s}$: $\Delta v_\text{grav} = \frac{2\times 9.807 \times 150}{\pi} \approx 936\;\text{m/s}$.
 \end{theorybox}
 
-\section{Rechenaufgaben}
+% ──────────────────────────────────────────────────────────────
+\section{Exercises}
 
-\begin{exercisebox}{1 — Tsiolkovsky-Gleichung}
-Gegeben: $m_0 = 100\,000\,\text{kg}$, $m_f = 10\,000\,\text{kg}$, $v_e = 3200\,\text{m/s}$.\\[0.5em]
-\textbf{a)} Berechne das ideale $\Delta v$:
+\begin{exercisebox}{1 — Tsiolkovsky: Step-by-Step Derivation Verification}
+Redo the full derivation with $v_0 = 0$ and verify each integration step.
+
+\textbf{a)} Separate variables from $m\,dv + v_e\,dm = 0$:
 \[
-  \Delta v = 3200 \cdot \ln\!\left(\frac{100\,000}{10\,000}\right) = \underline{\hspace{4cm}}\,\text{m/s}
+  dv = -v_e\cdot\frac{dm}{m}
 \]
-\textbf{b)} Die erste kosmische Geschwindigkeit (LEO) beträgt $\approx 7\,800\,\text{m/s}$.\\
-Reicht eine Stufe? Was hemmt uns in der Praxis?\\[0.5em]
-\textbf{c)} Mit zwei gleichen Stufen (je $m_0 = 50\,000$, $m_f = 5\,000$, $v_e = 3200$):
+Integrate both sides with correct limits ($v: 0 \to \Delta v$, $m: m_0 \to m_f$):
 \[
-  \Delta v_\text{total} = \Delta v_1 + \Delta v_2 = \underline{\hspace{6cm}}\,\text{m/s}
+  \int_0^{\Delta v} dv = -v_e\int_{m_0}^{m_f}\frac{dm}{m}
 \]
-\end{exercisebox}
+Show every step of the right-hand integral.
 
-\begin{solutionspace}[7cm]
-\end{solutionspace}
-
-\begin{exercisebox}{2 — Lineares Pitchprogramm berechnen}
-Parameter: $t_\text{kick} = 15\,\text{s}$, $\theta_\text{end} = 0°$, $t_\text{end} = 150\,\text{s}$.\\[0.5em]
-Berechne $\theta(t)$ für:
-
-\begin{center}
-\begin{tabular}{|c|c|}
-\hline
-$t$ (s) & $\theta$ (°) \\
-\hline
-0   &  \\
-\hline
-15  &  \\
-\hline
-50  &  \\
-\hline
-80  &  \\
-\hline
-120 &  \\
-\hline
-150 &  \\
-\hline
-\end{tabular}
-\end{center}
-
-\textbf{Zeichne} die Kurve $\theta(t)$ skizzenhaft in das folgende Koordinatensystem:
-
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[
-  width=10cm, height=5cm,
-  xlabel={$t$ (s)},
-  ylabel={$\theta$ (°)},
-  xmin=0, xmax=160,
-  ymin=-5, ymax=100,
-  grid=both,
-  grid style={line width=0.3pt, draw=gray!30},
-  major grid style={line width=0.6pt, draw=gray!60}
-]
-\end{axis}
-\end{tikzpicture}
-\end{center}
-\end{exercisebox}
-
-\begin{solutionspace}[3cm]
-\end{solutionspace}
-
-\begin{exercisebox}{3 — Velocity-Vector Tracking}
-Eine Rakete hat $v_x = 800\,\text{m/s}$, $v_y = 200\,\text{m/s}$.\\[0.5em]
-\textbf{a)} Berechne den Pitchwinkel beim Velocity-Vector Tracking:
-\[
-  \theta = \arctan\!\left(\frac{v_y}{v_x}\right) = \arctan\!\left(\frac{200}{800}\right) = \underline{\hspace{3cm}}°
-\]
-\textbf{b)} Was bedeutet $\theta \approx 14°$? Beschreibe die Flugrichtung qualitativ.\\[0.5em]
-\textbf{c)} Bei welchem Verhältnis $v_y / v_x$ ist $\theta = 45°$?
-\end{exercisebox}
-
-\begin{solutionspace}[5cm]
-\end{solutionspace}
-
-\begin{exercisebox}{4 — Gravitationsverlust}
-Der ``Gravitationsverlust'' (gravity drag) ist:
-\[
-  \Delta v_\text{grav} = \int_0^{t_\text{MECO}} g(t)\,\sin\theta(t)\,dt
-\]
-\textbf{Näherung} für konstantes $g = 9{,}81$ und lineares Pitch von $90°$ auf $0°$ in $t = 150\,\text{s}$:\\[0.5em]
-\[
-  \Delta v_\text{grav} \approx g \int_0^{150} \sin\!\left(90° - \frac{90°}{150}\,t\right)\,dt
-\]
-\textbf{a)} Vereinfache das Integral analytisch (Substitution oder direkt).\\[0.5em]
-\textbf{b)} Berechne das Ergebnis numerisch (Trapezregel mit 3 Stützstellen: $t = 0, 75, 150$).
+\textbf{b)} The integral $\int_{m_0}^{m_f}\frac{dm}{m} = [\ln m]_{m_0}^{m_f} = \ln m_f - \ln m_0 = \ln\frac{m_f}{m_0}$\\
+Therefore: $\Delta v = -v_e\ln\frac{m_f}{m_0} = v_e\ln\frac{m_0}{m_f}$.\\
+Why does the sign flip? Write the argument carefully.
 \end{exercisebox}
 
 \begin{solutionspace}[8cm]
 \end{solutionspace}
 
-\section{Verbindung zum Julia-Template}
+\begin{exercisebox}{2 — Mass Ratio and $\Delta v$ Calculations}
+$v_e = 3100\;\text{m/s}$ (Merlin 1D, vacuum).
 
-\begin{theorybox}{Was du jetzt implementierst}
-In \texttt{template.jl} (Kapitel 05) implementierst du:
+\textbf{a)} Required mass ratio for $\Delta v = 9400\;\text{m/s}$:
+\[
+  \frac{m_0}{m_f} = e^{\Delta v / v_e} = e^{9400/3100} = e^{\underline{\hspace{2cm}}} = \underline{\hspace{2cm}}
+\]
+
+\textbf{b)} If $m_\text{payload} = 13\,150\;\text{kg}$ and the structural fraction of the rocket is 7\% of total mass,
+find the required \textit{total} launch mass for a single-stage rocket achieving $\Delta v = 9400\;\text{m/s}$.
+\textit{Hint: $m_f = m_\text{payload} + 0.07\,m_0$, substitute and solve for $m_0$.}
+
+\textbf{c)} Compute $\Delta v$ for the Falcon 9 first stage:
+$m_0 = 549\,054\;\text{kg}$, $m_f = 549054 - 411000\;\text{kg}$ (411 tonnes of propellant),
+$v_e = I_{sp}\cdot g_0 = 311 \times 9.807\;\text{m/s}$.
+\[
+  \Delta v_1 = \underline{\hspace{6cm}}\;\text{m/s}
+\]
+\end{exercisebox}
+
+\begin{solutionspace}[8cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Gravity Loss: Analytical Integration}
+For constant $g=9.807\;\text{m/s}^2$ and a linear pitch program from $\theta=90°$ to $\theta=0°$ over $t_f = 180\;\text{s}$:
+\[
+  \theta(t) = \frac{\pi}{2}\left(1 - \frac{t}{t_f}\right) \Rightarrow \sin\theta(t) = \sin\!\left(\frac{\pi}{2} - \frac{\pi t}{2t_f}\right) = \cos\!\left(\frac{\pi t}{2t_f}\right)
+\]
+
+\textbf{a)} Set up the integral:
+\[
+  \Delta v_\text{grav} = g\int_0^{t_f}\cos\!\left(\frac{\pi t}{2t_f}\right)dt
+\]
+
+\textbf{b)} Use substitution $u = \dfrac{\pi t}{2t_f}$, so $du = \dfrac{\pi}{2t_f}dt$, i.e.\ $dt = \dfrac{2t_f}{\pi}du$:
+\[
+  = g\cdot\frac{2t_f}{\pi}\int_0^{\pi/2}\cos(u)\,du
+  = g\cdot\frac{2t_f}{\pi}\Big[\sin u\Big]_0^{\pi/2}
+  = g\cdot\frac{2t_f}{\pi}\cdot\underline{\hspace{2cm}}
+\]
+
+\textbf{c)} Final result for $t_f = 180\;\text{s}$:
+\[
+  \Delta v_\text{grav} = \frac{2 \times 9.807 \times 180}{\pi} = \underline{\hspace{3cm}}\;\text{m/s}
+\]
+
+\textbf{d)} Verify numerically using the \textbf{trapezoid rule} with 3 points ($t=0, 90, 180$):
+\[
+  \Delta v_\text{grav} \approx \frac{180}{2}\cdot\frac{\cos(0) + 2\cos(\pi/4) + \cos(\pi/2)}{2} \cdot g = \underline{\hspace{3cm}}
+\]
+How large is the integration error of the trapezoid rule?
+\end{exercisebox}
+
+\begin{solutionspace}[10cm]
+\end{solutionspace}
+
+\begin{exercisebox}{4 — Velocity Vector Tracking: Angle Calculations}
+At five points during flight, compute the gravity-turn pitch angle $\theta = \arctan(v_y/v_x)$:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|c|c|c|c|}
+\hline
+$t$ (s) & $v_x$ (m/s) & $v_y$ (m/s) & $\theta = \arctan(v_y/v_x)$ \\
+\hline
+0   & 0    & 0   & $90°$ (by convention) \\
+\hline
+30  & 50   & 280 & \\
+\hline
+80  & 400  & 600 & \\
+\hline
+150 & 1500 & 500 & \\
+\hline
+250 & 4000 & 200 & \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Note:} Use $\arctan(v_y/v_x)$ in degrees. At $v_x = 0$: $\theta = 90°$.
+
+\textbf{Question:} Does the rocket reach nearly horizontal flight ($\theta < 10°$) before MECO? At what $t$?
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+\begin{exercisebox}{5 — The Oberth Effect (Challenge)}
+The Oberth effect: engine burns are most efficient at high speed. Formally:
+the energy $\Delta E$ added by a burn producing $\Delta v$ at speed $v$ is:
+\[
+  \Delta E = \frac{1}{2}m(v + \Delta v)^2 - \frac{1}{2}mv^2 = m\,v\,\Delta v + \frac{1}{2}m(\Delta v)^2
+\]
+
+\textbf{a)} For the same $\Delta v = 100\;\text{m/s}$, $m=1000\;\text{kg}$:
+Compute $\Delta E$ at $v = 0$ and at $v = 7000\;\text{m/s}$.\\
+How many times more energy is added at $v=7000$ compared to $v=0$?
+
+\textbf{b)} This is why the stage 2 burn (at high altitude, high speed) is so valuable.
+For a rocket arriving at apoapsis with $v = 3000\;\text{m/s}$ and needing to reach $v_\text{circ} = 7700\;\text{m/s}$:
+\[
+  \Delta v = 7700 - 3000 = \underline{\hspace{2cm}}\;\text{m/s}
+\]
+What mass ratio does stage 2 need? ($v_e = 3500\;\text{m/s}$, $I_{sp,\text{vac}} = 357\;\text{s}$)
+
+\textbf{c)} If instead the rocket \textit{first} circularises at a low orbit (small $\Delta v$) and \textit{then} raises apoapsis,
+is that more or less efficient? Explain using the Oberth effect.
+\end{exercisebox}
+
+\begin{solutionspace}[9cm]
+\end{solutionspace}
+
+% ──────────────────────────────────────────────────────────────
+\section{Resources}
+
+\begin{hintbox}
+\textbf{Videos:}
+\begin{itemize}
+  \item \textbf{Everyday Astronaut} — ``Delta-v: the currency of space travel'':\\
+        \texttt{youtube.com/watch?v=TainEINsyKQ}
+  \item \textbf{Scott Manley} — ``Gravity turns explained'':\\
+        Search: ``Scott Manley gravity turn''
+  \item \textbf{Michel van Biezen} — Integrals with substitution (for Exercise 3):\\
+        Search: ``Michel van Biezen u-substitution''
+  \item \textbf{3Blue1Brown} — ``Essence of calculus: The Fundamental Theorem'':\\
+        \texttt{youtube.com/watch?v=rfG8ce4nNh0}
+\end{itemize}
+\textbf{Reference:}
+\begin{itemize}
+  \item \texttt{braeunig.us/space/orbmech.htm} — Orbital mechanics primer (free)
+  \item Bate, Mueller, White, \textit{Fundamentals of Astrodynamics} (Dover, inexpensive)
+\end{itemize}
+\end{hintbox}
+
+\section{Connection to the Julia Template}
+
+\begin{theorybox}{What you implement in \texttt{template.jl}}
 \begin{enumerate}
-  \item \texttt{pitch\_linear(t, params)} — lineares Pitchprogramm
-  \item \texttt{pitch\_velocity\_tracking(t, s)} — Velocity-Vector Tracking
-  \item Vollständige 2D-Simulation mit beiden Pitch-Strategien
-  \item \textbf{Trajektorie-Plot}: $x$ vs.\ $y$ (Downrange vs.\ Höhe)
-  \item Vergleich: Wie viel Downrange-Distanz bei gleicher Treibstoffmenge?
+  \item \texttt{pitch\_linear(t; t\_kick, t\_end, theta\_end)} — scheduled pitch
+  \item \texttt{pitch\_velocity\_tracking(t, s; t\_kick)} — gravity turn proper
+  \item Full 2D simulation with both strategies, same rocket params
+  \item Trajectory plot ($x$ vs $y$), pitch angle over time, $v_x$/$v_y$ components
+  \item Compute gravity loss numerically (integrate $g\sin\theta(t)$ over simulation) — compare to your analytical result from Exercise 3
 \end{enumerate}
 \end{theorybox}
 

@@ -4,197 +4,317 @@
 \begin{document}
 
 \begin{center}
-  {\LARGE \textbf{Kapitel 03: Die ISA-Atmosphäre}}\\[0.5em]
-  {\large \textcolor{hintgray}{Temperatur, Druck und Dichte als Funktionen der Höhe}}\\[0.3em]
+  {\LARGE \textbf{Chapter 03: The ISA Atmosphere}}\\[0.5em]
+  {\large \textcolor{hintgray}{Deriving Temperature, Pressure and Density from First Principles}}\\[0.3em]
   {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
 \end{center}
-\vspace{1em}
-\hrule
-\vspace{1.5em}
+\vspace{1em}\hrule\vspace{1.5em}
 
-% ─────────────────────────────────────────────
-\section{Warum brauchen wir ein Atmosphärenmodell?}
+% ──────────────────────────────────────────────────────────────
+\section{Why the Atmosphere Matters}
 
-\begin{theorybox}{Einfluss auf die Rakete}
-Der Luftwiderstand einer Rakete hängt von der \textbf{Luftdichte} $\rho(h)$ ab:
+\begin{theorybox}{Drag Force}
 \[
   F_\text{drag} = \frac{1}{2}\,\rho(h)\,v^2\,C_d\,A
 \]
-In der 1D-Simulation haben wir ein einfaches Exponentialmodell genutzt:
-\[
-  \rho(h) = 1{,}225 \cdot e^{-h/8500}
-\]
-Das \textbf{International Standard Atmosphere (ISA)} Modell ist realistischer und beschreibt Temperatur, Druck und Dichte schichtweise — aus physikalischen Prinzipien hergeleitet.
+The air density $\rho(h)$ drops by roughly 3 orders of magnitude from sea level to 80~km.
+A realistic $\rho(h)$ model is essential — the simple exponential used in the 1D simulation is only valid below ~15~km.
 \end{theorybox}
 
-% ─────────────────────────────────────────────
-\section{Die hydrostatische Grundgleichung}
+% ──────────────────────────────────────────────────────────────
+\section{The Hydrostatic Equation: Full Derivation}
 
-\begin{theorybox}{Herleitung}
-Betrachte eine dünne Luftschicht der Dicke $dh$:
+Consider a thin horizontal layer of atmosphere at altitude $h$ with thickness $dh$:
+
 \begin{itemize}
-  \item Gewichtskraft der Schicht: $dF = \rho\,g\,dh$
-  \item Druckabnahme nach oben: $dp = -\rho\,g\,dh$
+  \item Volume of layer per unit area: $dV = 1 \cdot dh$
+  \item Mass of layer: $dm = \rho(h)\,dh$
+  \item Weight of layer (force on air below): $dF = \rho(h)\,g\,dh$
+  \item This weight must be supported by a pressure difference: $dp = -dF/A = -\rho g\,dh$
 \end{itemize}
+
+\begin{theorybox}{Hydrostatic Equation (ODE for pressure)}
 \[
   \boxed{\frac{dp}{dh} = -\rho(h)\,g}
 \]
-Das ist eine DGL! Um sie zu lösen, brauchen wir eine Beziehung zwischen $\rho$ und $p$.
+This is a first-order ODE. To solve it, we need $\rho$ as a function of $p$ and $T$ — provided by the ideal gas law.
 \end{theorybox}
 
-\subsection*{Ideales Gasgesetz}
+\subsection*{Ideal Gas Law}
+
 \[
   p = \rho\,R_s\,T \quad \Rightarrow \quad \rho = \frac{p}{R_s\,T}
 \]
-$R_s = 287{,}058\;\text{J/(kg\,K)}$ ist die spezifische Gaskonstante für Luft.
 
-% ─────────────────────────────────────────────
-\section{Schichten der ISA-Atmosphäre}
+where $R_s = 287.058\;\text{J/(kg\,K)}$ is the specific gas constant for dry air.
+Substituting into the hydrostatic equation:
 
-\begin{theorybox}{Troposphäre: $0 \leq h \leq 11\,000\,\text{m}$}
-Die Temperatur nimmt linear mit der Höhe ab (Temperaturgradient $L = 0{,}0065\,\text{K/m}$):
 \[
-  T(h) = T_0 - L\cdot h = 288{,}15 - 0{,}0065\cdot h \quad [\text{K}]
+  \frac{dp}{dh} = -\frac{p}{R_s\,T(h)}\,g
 \]
-Einsetzen in die hydrostatische Gleichung und Lösen gibt:
-\[
-  p(h) = p_0\left(\frac{T(h)}{T_0}\right)^{\frac{g}{L\,R_s}} = p_0\left(1 - \frac{L\,h}{T_0}\right)^{5{,}2561}
-\]
-\[
-  \rho(h) = \rho_0\left(1 - \frac{L\,h}{T_0}\right)^{4{,}2561}
-\]
-\end{theorybox}
 
-\begin{theorybox}{Stratosphäre (untere): $11\,000 \leq h \leq 20\,000\,\text{m}$}
-Hier ist die Temperatur \textbf{konstant}: $T = 216{,}65\,\text{K}$ (isotherme Schicht).\\
-Die hydrostatische DGL vereinfacht sich zu:
+% ──────────────────────────────────────────────────────────────
+\section{ISA Layers and Analytical Solutions}
+
+\subsection*{Layer 1: Troposphere ($0 \leq h \leq 11\,000\;\text{m}$)}
+
+\begin{theorybox}{Temperature Profile (given empirically)}
 \[
-  \frac{dp}{dh} = -\frac{p\,g}{R_s\,T_{11}} \quad \Rightarrow \quad p(h) = p_{11}\cdot e^{-\frac{g}{R_s\,T_{11}}(h - 11000)}
+  T(h) = T_0 - L\,h, \quad T_0 = 288.15\;\text{K},\quad L = 0.0065\;\text{K/m}
 \]
 \end{theorybox}
 
-\begin{theorybox}{Standardwerte an Meereshöhe ($h=0$)}
+Substituting $T(h) = T_0 - Lh$ into the hydrostatic ODE:
+\[
+  \frac{dp}{p} = -\frac{g}{R_s(T_0 - Lh)}\,dh
+\]
+
+Integrate both sides (left: $\int dp/p = \ln p$; right: requires substitution $u = T_0 - Lh$):
+
+\[
+  \ln\frac{p}{p_0} = -\frac{g}{R_s L}\ln\frac{T_0-Lh}{T_0} = \frac{g}{R_s L}\ln\frac{T_0}{T_0-Lh}
+\]
+
+\begin{theorybox}{Troposphere: Analytical Solution}
+\[
+  p(h) = p_0 \left(\frac{T_0 - Lh}{T_0}\right)^{\!\frac{g}{R_s L}}
+         = p_0 \left(\frac{T(h)}{T_0}\right)^{5.2561}
+\]
+\[
+  \rho(h) = \rho_0 \left(\frac{T(h)}{T_0}\right)^{\!\frac{g}{R_s L}-1}
+           = \rho_0 \left(\frac{T(h)}{T_0}\right)^{4.2561}
+\]
+The exponent $\dfrac{g}{R_s L} = \dfrac{9.80665}{287.058 \times 0.0065} \approx 5.2561$.
+\end{theorybox}
+
+\subsection*{Layer 2: Lower Stratosphere ($11\,000 \leq h \leq 20\,000\;\text{m}$)}
+
+\begin{theorybox}{Isothermal Layer: $T = T_{11} = 216.65\;\text{K}$ (constant)}
+The hydrostatic ODE simplifies to:
+\[
+  \frac{dp}{dh} = -\frac{g}{R_s\,T_{11}}\,p \quad \Rightarrow \quad \frac{dp}{p} = -\lambda\,dh,
+  \quad \lambda = \frac{g}{R_s\,T_{11}}
+\]
+This is exactly $\dot{y} = -\lambda y$ — the decay ODE from Chapter 01!\\
+Solution by separation:
+\[
+  p(h) = p_{11}\,\exp\!\left(-\frac{g}{R_s\,T_{11}}(h - 11000)\right)
+\]
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{Speed of Sound and Mach Number}
+
+\begin{theorybox}{Acoustic Wave Speed in an Ideal Gas}
+\[
+  c(h) = \sqrt{\gamma\,R_s\,T(h)}, \qquad \gamma = 1.4
+\]
+At sea level: $c_0 = \sqrt{1.4 \times 287.058 \times 288.15} \approx 340.3\;\text{m/s}$
+
+At the tropopause ($T_{11} = 216.65\;\text{K}$): $c_{11} = \sqrt{1.4 \times 287 \times 216.65} \approx 295.1\;\text{m/s}$
+
+The Mach number: $Ma = v / c(h)$ — same speed gives \textit{higher} Mach at altitude!
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{Mach-Dependent Drag Coefficient}
+
+\begin{theorybox}{Transonic Drag Rise}
+Near $Ma=1$, shock waves form on the rocket body, dramatically increasing drag.
+We model this with a Gaussian peak:
+\[
+  C_d(Ma) = C_{d,\infty} + \Delta C_d \cdot \exp\!\left(-\left(\frac{Ma - 1}{w}\right)^{\!2}\right)
+\]
+With $C_{d,\infty} = 0.3$, $\Delta C_d = 0.5$, $w = 0.3$.\\
+Maximum at $Ma=1$: $C_d = 0.3 + 0.5 = 0.8$ (almost 3$\times$ the supersonic value).
+\end{theorybox}
+
+% ──────────────────────────────────────────────────────────────
+\section{Exercises}
+
+\begin{exercisebox}{1 — Derive the Pressure Formula Step by Step}
+Starting from:
+\[
+  \frac{dp}{dh} = -\frac{g\,p}{R_s\,(T_0 - Lh)}
+\]
+\textbf{a)} Separate variables:
+\[
+  \frac{dp}{p} = \underline{\hspace{6cm}}
+\]
+
+\textbf{b)} Integrate the right side using substitution $u = T_0 - Lh$ (so $du = -L\,dh$):
+\[
+  -\frac{g}{R_s}\int_{h=0}^{h} \frac{dh}{T_0 - Lh}
+  = -\frac{g}{R_s}\int_{T_0}^{T(h)}\frac{du/(-L)}{u}
+  = \frac{g}{R_s L}\int_{T(h)}^{T_0}\frac{du}{u}
+  = \underline{\hspace{4cm}}
+\]
+
+\textbf{c)} Exponentiate both sides and apply $p(0) = p_0$ to arrive at the formula from Section 3.
+\end{exercisebox}
+
+\begin{solutionspace}[9cm]
+\end{solutionspace}
+
+\begin{exercisebox}{2 — Verify the Exponent Numerically}
+Compute the exponent $\alpha = g/(R_s L)$ and $\alpha - 1$:
+\[
+  \alpha = \frac{9.80665}{287.058 \times 0.0065} = \underline{\hspace{3cm}}
+\]
+\[
+  \alpha - 1 = \underline{\hspace{3cm}} \quad \text{(exponent for } \rho(h) \text{)}
+\]
+
+\textbf{Check:} Compute $\rho(5000)$ using both formulas and compare:
 \begin{align*}
-  T_0 &= 288{,}15\,\text{K} = 15°\text{C}\\
-  p_0 &= 101\,325\,\text{Pa}\\
-  \rho_0 &= 1{,}225\,\text{kg/m}^3
+  T(5000) &= 288.15 - 0.0065 \times 5000 = \underline{\hspace{3cm}}\;\text{K} \\
+  \rho(5000) &= 1.225 \times \left(\frac{T(5000)}{288.15}\right)^{4.256} = \underline{\hspace{3cm}}\;\text{kg/m}^3
 \end{align*}
-\end{theorybox}
-
-% ─────────────────────────────────────────────
-\section{Schallgeschwindigkeit und Machzahl}
-
-\begin{theorybox}{Schallgeschwindigkeit}
-Die Schallgeschwindigkeit hängt von der Temperatur ab:
-\[
-  c(h) = \sqrt{\gamma\,R_s\,T(h)}, \quad \gamma = 1{,}4
-\]
-Bei $T_0 = 288{,}15\,\text{K}$: $c_0 = \sqrt{1{,}4 \cdot 287 \cdot 288{,}15} \approx 340{,}3\,\text{m/s}$
-\[
-  Ma = \frac{v}{c(h)}
-\]
-\textbf{Wichtig:} Die Machzahl ändert sich mit der Höhe, weil $c(h)$ fällt!
-\end{theorybox}
-
-% ─────────────────────────────────────────────
-\section{Rechenaufgaben}
-
-\begin{exercisebox}{1 — Temperatur und Dichte auf verschiedenen Höhen}
-Berechne $T$, $\rho$ und $c$ für die folgenden Höhen (Troposphäre):
-
-\begin{center}
-\begin{tabular}{|c|c|c|c|}
-\hline
-$h$ (m) & $T(h)$ (K) & $\rho(h)$ (kg/m³) & $c(h)$ (m/s) \\
-\hline
-0       & 288{,}15   & 1{,}2250            & 340{,}3      \\
-\hline
-1\,000  & & & \\
-\hline
-5\,000  & & & \\
-\hline
-10\,000 & & & \\
-\hline
-11\,000 & & & \\
-\hline
-\end{tabular}
-\end{center}
-
-Formeln:
-$T(h) = 288{,}15 - 0{,}0065\cdot h$,\quad
-$\rho(h) = 1{,}225\cdot\left(\dfrac{T(h)}{288{,}15}\right)^{4{,}2561}$,\quad
-$c(h) = \sqrt{1{,}4 \cdot 287 \cdot T(h)}$
-\end{exercisebox}
-
-\begin{solutionspace}[7cm]
-\end{solutionspace}
-
-\begin{exercisebox}{2 — Hydrostatische DGL als ODE lösen}
-Die isotherme Stratosphäre ($T = T_{11} = 216{,}65\,\text{K}$, für $h \geq 11\,000\,\text{m}$) führt auf:
-\[
-  \frac{dp}{dh} = -\frac{g}{R_s\,T_{11}}\,p, \quad p(11000) = p_{11}
-\]
-\textbf{a)} Zeige, dass dies eine DGL der Form $\dot{y} = \lambda y$ ist. Was ist $\lambda$?\\[0.5em]
-\textbf{b)} Löse die DGL analytisch. Was für eine Funktion ist $p(h)$?\\[0.5em]
-\textbf{c)} Berechne $p$ bei $h = 15\,000\,\text{m}$ ($p_{11} = 22\,632\,\text{Pa}$, $\lambda \approx -1{,}577 \times 10^{-4}\,\text{m}^{-1}$):
-\[
-  p(15000) = \underline{\hspace{4cm}}\,\text{Pa}
-\]
-\end{exercisebox}
-
-\begin{solutionspace}[7cm]
-\end{solutionspace}
-
-\begin{exercisebox}{3 — Luftwiderstand auf verschiedenen Höhen}
-Eine Rakete fliegt mit $v = 500\,\text{m/s}$, $A = 10\,\text{m}^2$, $C_d = 0{,}3$.\\
-Berechne $F_\text{drag} = \frac{1}{2}\rho v^2 C_d A$ für:
-
-\begin{center}
-\begin{tabular}{|c|c|c|}
-\hline
-$h$ (m) & $\rho(h)$ (kg/m³) & $F_\text{drag}$ (N) \\
-\hline
-0       & 1{,}225 & \\
-\hline
-5\,000  & & \\
-\hline
-10\,000 & & \\
-\hline
-\end{tabular}
-\end{center}
-
-\textbf{Frage:} Um welchen Faktor sinkt der Luftwiderstand von $h=0$ auf $h=10\,000\,\text{m}$?
-\end{exercisebox}
-
-\begin{solutionspace}[5cm]
-\end{solutionspace}
-
-\begin{exercisebox}{4 — Machzahl-abhängiger Drag-Koeffizient}
-In der 1D-Simulation haben wir benutzt:
-\[
-  C_d(Ma) = 0{,}3 + 0{,}5\cdot\exp\!\left(-\left(\frac{Ma - 1{,}0}{0{,}3}\right)^2\right)
-\]
-\textbf{a)} Bei welcher Machzahl ist $C_d$ am größten? Was ist der Maximalwert?\\[0.5em]
-\textbf{b)} Berechne $C_d$ für $Ma = 0{,}5$, $Ma = 1{,}0$, $Ma = 2{,}0$.\\[0.5em]
-\textbf{c)} Warum hat $C_d$ ein Maximum um $Ma = 1$? (Stichwort: Machzahl-Krise, Stosswellen)
+Reference value: $\rho(5000) \approx 0.7364\;\text{kg/m}^3$.
 \end{exercisebox}
 
 \begin{solutionspace}[6cm]
 \end{solutionspace}
 
-% ─────────────────────────────────────────────
-\section{Verbindung zum Julia-Template}
+\begin{exercisebox}{3 — Compute the Atmosphere Table}
+Fill in the complete table. Use the correct formula for each layer.
 
-\begin{theorybox}{Was du jetzt implementierst}
-In \texttt{template.jl} (Kapitel 03) implementierst du:
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+$h$ (m) & $T$ (K) & $p$ (Pa) & $\rho$ (kg/m³) & $c$ (m/s) \\
+\hline
+0       & 288.15 & 101\,325 & 1.2250 & 340.3 \\
+\hline
+2\,000  & & & & \\
+\hline
+5\,000  & & & & \\
+\hline
+8\,000  & & & & \\
+\hline
+11\,000 & 216.65 & 22\,632 & 0.3639 & 295.1 \\
+\hline
+15\,000 & 216.65 & & & \\
+\hline
+20\,000 & 216.65 & 5\,475 & 0.0880 & \\
+\hline
+\end{tabular}
+\end{center}
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+\begin{exercisebox}{4 — Mach Number at Altitude}
+A rocket has speed $v = 600\;\text{m/s}$ throughout a vertical ascent.
+
+\textbf{a)} Compute $Ma(h)$ at $h = 0$, $h = 5000\;\text{m}$, and $h = 11\,000\;\text{m}$:
+\[
+  Ma(0) = \frac{600}{\underline{\hspace{2cm}}} = \underline{\hspace{2cm}}, \quad
+  Ma(5000) = \underline{\hspace{2cm}}, \quad
+  Ma(11000) = \underline{\hspace{2cm}}
+\]
+
+\textbf{b)} The Mach number \textit{increases} even though the speed is constant. Explain why.
+
+\textbf{c)} Compute $C_d$ at each Mach number above:
+\[
+  C_d(Ma) = 0.3 + 0.5\exp\!\left(-\left(\frac{Ma-1}{0.3}\right)^2\right)
+\]
+For $Ma = 1.033$: $C_d = 0.3 + 0.5\exp\left(-\left(\frac{0.033}{0.3}\right)^2\right) = \underline{\hspace{3cm}}$
+
+\textbf{d)} Compute $F_\text{drag}$ at each altitude. Use $A = 10.73\;\text{m}^2$:
+\[
+  F_\text{drag}(0)\; = \tfrac{1}{2} \times \underline{\hspace{1cm}} \times 600^2 \times \underline{\hspace{1cm}} \times 10.73 = \underline{\hspace{2cm}}\;\text{N}
+\]
+\end{exercisebox}
+
+\begin{solutionspace}[9cm]
+\end{solutionspace}
+
+\begin{exercisebox}{5 — The Barometric Formula: Approximation vs. ISA}
+The simplified barometric formula (used in the 1D simulation) is:
+\[
+  \rho_\text{simple}(h) = \rho_0\,e^{-h/H}, \quad H = 8500\;\text{m}
+\]
+
+\textbf{a)} Derive this formula by solving $\frac{d\rho}{dh} = -\frac{\rho}{H}$ with $\rho(0) = \rho_0$ using separation of variables.
+
+\textbf{b)} Compare $\rho_\text{simple}(h)$ vs.\ $\rho_\text{ISA}(h)$ at $h = 5000$, $10000$, $20000\;\text{m}$.
+Compute the relative error $\dfrac{|\rho_\text{ISA} - \rho_\text{simple}|}{\rho_\text{ISA}}$ at each altitude.
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+$h$ (m) & $\rho_\text{ISA}$ & $\rho_\text{simple}$ & Relative error \\
+\hline
+5\,000 & 0.7364 & & \\
+\hline
+10\,000 & 0.4135 & & \\
+\hline
+20\,000 & 0.0880 & & \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{c)} Above what altitude does the simple model become unreliable (error $> 10\%$)?
+\end{exercisebox}
+
+\begin{solutionspace}[8cm]
+\end{solutionspace}
+
+\begin{exercisebox}{6 — Dynamic Pressure and Max-Q (Challenge)}
+The \textbf{dynamic pressure} is $q = \frac{1}{2}\rho(h)\,v^2$.
+During ascent, $\rho$ decreases while $v$ increases. The maximum of $q$ (called \textbf{Max-Q}) is a critical design point — structural loads on the rocket are highest here.
+
+For a simplified vertical ascent with constant thrust $T = 1.4\;\text{MN}$, $m_0 = 100\,000\;\text{kg}$, $\dot{m} = 437.5\;\text{kg/s}$, assume $v \approx at$ (constant acceleration $a \approx 4.4\;\text{m/s}^2$).
+
+\textbf{a)} Write $q(t) = \frac{1}{2}\rho(h(t))\,(at)^2$. With $h \approx \frac{1}{2}at^2$ and $\rho = \rho_0 e^{-h/H}$:
+\[
+  q(t) = \frac{1}{2}\rho_0\,e^{-at^2/(2H)} \cdot a^2 t^2
+\]
+
+\textbf{b)} Find the time $t^*$ of Max-Q by setting $\dfrac{dq}{dt} = 0$.
+\textit{Hint: differentiate and factor. You will get $2 - \dfrac{a\,t^2}{H} = 0$.}
+\[
+  t^* = \sqrt{\frac{2H}{a}} = \underline{\hspace{3cm}}\;\text{s}
+\]
+
+\textbf{c)} Compute $h^*$ and $v^*$ at Max-Q. Does this match the Falcon 9 value of $\approx 80\;\text{s}$?
+\end{exercisebox}
+
+\begin{solutionspace}[9cm]
+\end{solutionspace}
+
+% ──────────────────────────────────────────────────────────────
+\section{Resources}
+
+\begin{hintbox}
+\textbf{Videos:}
+\begin{itemize}
+  \item \textbf{Scott Manley} — ``Why does Max-Q matter?'':\\
+        Search: ``Scott Manley Max-Q'' on YouTube
+  \item \textbf{Everyday Astronaut} — ``What is Max-Q?'':\\
+        \texttt{youtube.com/c/EverydayAstronaut} (excellent explanations with real launches)
+  \item \textbf{Khan Academy} — ``Separable differential equations'':\\
+        \texttt{khanacademy.org/math/ap-calculus-ab/ab-diff-equations-new/ab-7-6/v/separable-differential-equations-intro}
+\end{itemize}
+\textbf{Reference:}
+\begin{itemize}
+  \item ICAO Standard Atmosphere document: \texttt{engineeringtoolbox.com/international-standard-atmosphere-d\_985.html}
+  \item HyperPhysics — Atmosphere: \texttt{hyperphysics.phy-astr.gsu.edu/hbase/Kinetic/barfor.html}
+\end{itemize}
+\end{hintbox}
+
+\section{Connection to the Julia Template}
+
+\begin{theorybox}{What you implement in \texttt{template.jl}}
 \begin{enumerate}
-  \item \texttt{isa\_temperature(h)} — Temperaturprofil (Troposphäre + untere Stratosphäre)
-  \item \texttt{isa\_pressure(h)} — Druckprofil
-  \item \texttt{isa\_density(h)} — Dichteprofil (über ideales Gasgesetz)
-  \item \texttt{speed\_of\_sound(h)} — Schallgeschwindigkeit
-  \item \texttt{drag\_coefficient(mach)} — Mach-abhängiger $C_d$
-  \item \texttt{aerodrag(h, v, A, Cd\_func)} — Luftwiderstandskraft
-  \item Plots: $T(h)$, $\rho(h)$, $c(h)$ über Höhe 0–20 km
+  \item \texttt{isa\_temperature(h)}, \texttt{isa\_pressure(h)}, \texttt{isa\_density(h)}
+  \item \texttt{speed\_of\_sound(h)}, \texttt{drag\_coefficient(mach)}, \texttt{aerodrag(h,v,A,Cd)}
+  \item Plot all profiles $T(h)$, $\rho(h)$, $c(h)$ up to 20~km — overlay with simple exponential
+  \item Dynamic pressure plot: $q(h)$ for a given velocity profile — find Max-Q visually
 \end{enumerate}
 \end{theorybox}
 
