@@ -1,5 +1,10 @@
 # Rocket Science Workbook — 2D Simulation in Julia
 
+> This workbook structure was designed by Claude to make the learning goal explicit:
+> the primary focus of this project is **understanding** — not just producing a working simulation.
+> Every chapter forces you to derive and solve the math on paper before writing a single line of code.
+> The simulation is the result of learning, not the goal itself.
+
 ## How to use this workbook
 
 Work through the chapters **in order**. Each chapter builds on the previous one.
