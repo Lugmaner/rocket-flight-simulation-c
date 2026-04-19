@@ -86,7 +86,7 @@ void simulate_flight(double time_limit, FILE *file){
         if(file != NULL){
             update_file(file, rocket, cTime + dTime);
         }
-        if(rocket.state.height <= 0.0 && cTime > 0.0 && rocket.state.vel < 0){
+        if(rocket.state.height <= 0.0 && cTime > 0.0){
             printf("Rocket hit the ground!!\n");
             break;
         }
