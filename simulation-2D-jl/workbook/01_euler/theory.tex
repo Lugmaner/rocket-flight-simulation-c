@@ -1,0 +1,186 @@
+\documentclass[12pt, a4paper]{article}
+\input{../preamble}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Kapitel 01: Das Euler-Verfahren}}\\[0.5em]
+  {\large \textcolor{hintgray}{Numerische Lösung gewöhnlicher Differentialgleichungen}}\\[0.3em]
+  {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
+\end{center}
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+% ─────────────────────────────────────────────
+\section{Was ist eine Differentialgleichung?}
+
+\begin{theorybox}{Definition: Gewöhnliche DGL (ODE)}
+Eine \textbf{gewöhnliche Differentialgleichung} (ODE) beschreibt, wie sich eine Größe $y(t)$ \textit{in Abhängigkeit von sich selbst und der Zeit} verändert:
+\[
+  \frac{dy}{dt} = f(t,\, y)
+\]
+$f(t,y)$ ist eine beliebige Funktion. Der Wert $y(0) = y_0$ heißt \textbf{Anfangsbedingung}.
+Das Ziel: Finde $y(t)$ für alle $t > 0$.
+\end{theorybox}
+
+\subsection*{Warum numerisch?}
+Die meisten ODEs in der Physik haben \textbf{keine geschlossene analytische Lösung}.
+Stattdessen berechnen wir \textit{Näherungswerte} auf einem Zeitgitter:
+\[
+  t_0,\; t_1 = t_0 + h,\; t_2 = t_0 + 2h,\; \ldots
+\]
+wobei $h$ die \textbf{Schrittweite} ist.
+
+% ─────────────────────────────────────────────
+\section{Das Euler-Verfahren}
+
+\begin{theorybox}{Formel: Explizites Euler-Verfahren}
+\[
+  \boxed{y_{n+1} = y_n + h \cdot f(t_n,\, y_n)}
+\]
+\textbf{Idee:} Wir linearisieren $y(t)$ lokal — die Ableitung $f(t_n, y_n)$ wird als konstant über den ganzen Schritt angenommen.
+\end{theorybox}
+
+\subsection*{Geometrische Interpretation}
+Am Punkt $(t_n, y_n)$ berechnen wir die Steigung der Kurve. Dann gehen wir einen Schritt $h$ entlang dieser Steigung. Je kleiner $h$, desto genauer.
+
+\begin{theorybox}{Fehleranalyse}
+\begin{itemize}
+  \item \textbf{Lokaler Fehler} (pro Schritt): $\mathcal{O}(h^2)$ — quadratisch klein
+  \item \textbf{Globaler Fehler} (nach $N$ Schritten): $\mathcal{O}(h)$ — linear in $h$
+  \item Das Euler-Verfahren ist ein Verfahren \textbf{erster Ordnung}
+\end{itemize}
+Halbiert man $h$, halbiert sich auch der globale Fehler.
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Rechenaufgaben}
+
+\begin{exercisebox}{1 — Euler von Hand (5 Schritte)}
+Gegeben sei die ODE:
+\[
+  \frac{dy}{dt} = -y, \quad y(0) = 1, \quad h = 0{,}2
+\]
+\textbf{Exakte Lösung:} $y(t) = e^{-t}$
+
+Berechne die Näherungswerte $y_1, y_2, y_3, y_4, y_5$ mit dem Euler-Verfahren.
+Fülle die Tabelle aus:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+$n$ & $t_n$ & $y_n$ (Euler) & $y(t_n) = e^{-t_n}$ & Fehler $|y_n - y(t_n)|$ \\
+\hline
+0 & 0{,}0 & 1{,}0000 & 1{,}0000 & 0{,}0000 \\
+\hline
+1 & 0{,}2 & & & \\
+\hline
+2 & 0{,}4 & & & \\
+\hline
+3 & 0{,}6 & & & \\
+\hline
+4 & 0{,}8 & & & \\
+\hline
+5 & 1{,}0 & & & \\
+\hline
+\end{tabular}
+\end{center}
+\end{exercisebox}
+
+\begin{solutionspace}[7cm]
+\end{solutionspace}
+
+\begin{hintbox}
+Schritt 1: $y_1 = y_0 + h \cdot f(t_0, y_0) = 1{,}0 + 0{,}2 \cdot (-1{,}0) = 0{,}8$\\
+Schritt 2: $y_2 = y_1 + h \cdot f(t_1, y_1) = 0{,}8 + 0{,}2 \cdot (-0{,}8) = ?$\\
+\ldots weiter bis $n=5$.
+\end{hintbox}
+
+\vspace{1em}
+
+\begin{exercisebox}{2 — Einfluss der Schrittweite}
+Wiederhole Aufgabe 1 mit $h = 0{,}5$ (nur 2 Schritte bis $t=1$).\\[0.5em]
+\textbf{Frage:} Wie groß ist der Fehler bei $t=1{,}0$ im Vergleich zu $h=0{,}2$?\\
+Stimmt die erwartete lineare Fehlerordnung $\mathcal{O}(h)$?
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+$n$ & $t_n$ & $y_n$ (Euler, $h=0{,}5$) & $y(t_n) = e^{-t_n}$ & Fehler \\
+\hline
+0 & 0{,}0 & 1{,}0000 & 1{,}0000 & 0{,}0000 \\
+\hline
+1 & 0{,}5 & & & \\
+\hline
+2 & 1{,}0 & & & \\
+\hline
+\end{tabular}
+\end{center}
+
+Verhältnis der Fehler: $\dfrac{\text{Fehler}_{h=0{,}5}}{\text{Fehler}_{h=0{,}2}} \approx$ \underline{\hspace{2cm}} \quad (erwartet: $\approx 2{,}5$)
+\end{exercisebox}
+
+\begin{solutionspace}[5cm]
+\end{solutionspace}
+
+\vspace{1em}
+
+\begin{exercisebox}{3 — Freier Fall als ODE}
+Ein Objekt fällt aus $h_0 = 100\,\text{m}$ mit $v_0 = 0\,\text{m/s}$. Keine Luftreibung.\\[0.5em]
+Das System lautet (Zustandsvektor $\mathbf{y} = [h, v]^\top$):
+\[
+  \frac{d}{dt}\begin{pmatrix} h \\ v \end{pmatrix}
+  = \begin{pmatrix} v \\ -g \end{pmatrix}, \quad g = 9{,}81\,\frac{\text{m}}{\text{s}^2}
+\]
+
+Berechne mit $h_{\text{step}} = 1\,\text{s}$ die ersten \textbf{3 Schritte}:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+$n$ & $t$ (s) & $h$ (m) & $v$ (m/s) & $v_{\text{exakt}} = -g\cdot t$ \\
+\hline
+0 & 0 & 100{,}00 & 0{,}00 & 0{,}00 \\
+\hline
+1 & 1 & & & \\
+\hline
+2 & 2 & & & \\
+\hline
+3 & 3 & & & \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Wann trifft das Objekt den Boden?} Exakt: $t^* = \sqrt{2h_0/g} \approx$ \underline{\hspace{2cm}} s
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+\begin{exercisebox}{4 — Konzeptfrage: Stabilität}
+Betrachte die ODE $\dfrac{dy}{dt} = \lambda y$ mit $\lambda > 0$ (wachsende Lösung).\\[0.5em]
+\textbf{a)} Schreibe die Euler-Formel für diesen Fall auf.\\[0.3em]
+\textbf{b)} Ab welcher Schrittweite $h$ wird $|y_{n+1}| > |y_n|$ garantiert?\\[0.3em]
+\textbf{c)} Ab welchem $h$ ``explodiert'' die Näherung (Instabilität)?\\
+\textit{Hinweis: Betrachte den Faktor $(1 + h\lambda)$ und wann dieser $> 1$ oder $< -1$ wird.}
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+% ─────────────────────────────────────────────
+\section{Verbindung zum Julia-Template}
+
+\begin{theorybox}{Was du jetzt implementierst}
+In \texttt{template.jl} (Kapitel 01) implementierst du:
+\begin{enumerate}
+  \item \texttt{euler\_step(f, t, y, h)} — einen einzelnen Euler-Schritt
+  \item \texttt{euler\_solve(f, y0, t0, t\_end, h)} — die vollständige Integration
+  \item Test mit $\dot{y} = -y$ und Fehlerplot
+  \item Test mit freiem Fall (Aufgabe 3)
+\end{enumerate}
+Die Funktion \texttt{euler\_step} ist exakt die Formel $y_{n+1} = y_n + h \cdot f(t_n, y_n)$, die du oben von Hand angewendet hast.
+\end{theorybox}
+
+\end{document}

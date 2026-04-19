@@ -1,0 +1,201 @@
+\documentclass[12pt, a4paper]{article}
+\input{../preamble}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Kapitel 03: Die ISA-Atmosphäre}}\\[0.5em]
+  {\large \textcolor{hintgray}{Temperatur, Druck und Dichte als Funktionen der Höhe}}\\[0.3em]
+  {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
+\end{center}
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+% ─────────────────────────────────────────────
+\section{Warum brauchen wir ein Atmosphärenmodell?}
+
+\begin{theorybox}{Einfluss auf die Rakete}
+Der Luftwiderstand einer Rakete hängt von der \textbf{Luftdichte} $\rho(h)$ ab:
+\[
+  F_\text{drag} = \frac{1}{2}\,\rho(h)\,v^2\,C_d\,A
+\]
+In der 1D-Simulation haben wir ein einfaches Exponentialmodell genutzt:
+\[
+  \rho(h) = 1{,}225 \cdot e^{-h/8500}
+\]
+Das \textbf{International Standard Atmosphere (ISA)} Modell ist realistischer und beschreibt Temperatur, Druck und Dichte schichtweise — aus physikalischen Prinzipien hergeleitet.
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Die hydrostatische Grundgleichung}
+
+\begin{theorybox}{Herleitung}
+Betrachte eine dünne Luftschicht der Dicke $dh$:
+\begin{itemize}
+  \item Gewichtskraft der Schicht: $dF = \rho\,g\,dh$
+  \item Druckabnahme nach oben: $dp = -\rho\,g\,dh$
+\end{itemize}
+\[
+  \boxed{\frac{dp}{dh} = -\rho(h)\,g}
+\]
+Das ist eine DGL! Um sie zu lösen, brauchen wir eine Beziehung zwischen $\rho$ und $p$.
+\end{theorybox}
+
+\subsection*{Ideales Gasgesetz}
+\[
+  p = \rho\,R_s\,T \quad \Rightarrow \quad \rho = \frac{p}{R_s\,T}
+\]
+$R_s = 287{,}058\;\text{J/(kg\,K)}$ ist die spezifische Gaskonstante für Luft.
+
+% ─────────────────────────────────────────────
+\section{Schichten der ISA-Atmosphäre}
+
+\begin{theorybox}{Troposphäre: $0 \leq h \leq 11\,000\,\text{m}$}
+Die Temperatur nimmt linear mit der Höhe ab (Temperaturgradient $L = 0{,}0065\,\text{K/m}$):
+\[
+  T(h) = T_0 - L\cdot h = 288{,}15 - 0{,}0065\cdot h \quad [\text{K}]
+\]
+Einsetzen in die hydrostatische Gleichung und Lösen gibt:
+\[
+  p(h) = p_0\left(\frac{T(h)}{T_0}\right)^{\frac{g}{L\,R_s}} = p_0\left(1 - \frac{L\,h}{T_0}\right)^{5{,}2561}
+\]
+\[
+  \rho(h) = \rho_0\left(1 - \frac{L\,h}{T_0}\right)^{4{,}2561}
+\]
+\end{theorybox}
+
+\begin{theorybox}{Stratosphäre (untere): $11\,000 \leq h \leq 20\,000\,\text{m}$}
+Hier ist die Temperatur \textbf{konstant}: $T = 216{,}65\,\text{K}$ (isotherme Schicht).\\
+Die hydrostatische DGL vereinfacht sich zu:
+\[
+  \frac{dp}{dh} = -\frac{p\,g}{R_s\,T_{11}} \quad \Rightarrow \quad p(h) = p_{11}\cdot e^{-\frac{g}{R_s\,T_{11}}(h - 11000)}
+\]
+\end{theorybox}
+
+\begin{theorybox}{Standardwerte an Meereshöhe ($h=0$)}
+\begin{align*}
+  T_0 &= 288{,}15\,\text{K} = 15°\text{C}\\
+  p_0 &= 101\,325\,\text{Pa}\\
+  \rho_0 &= 1{,}225\,\text{kg/m}^3
+\end{align*}
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Schallgeschwindigkeit und Machzahl}
+
+\begin{theorybox}{Schallgeschwindigkeit}
+Die Schallgeschwindigkeit hängt von der Temperatur ab:
+\[
+  c(h) = \sqrt{\gamma\,R_s\,T(h)}, \quad \gamma = 1{,}4
+\]
+Bei $T_0 = 288{,}15\,\text{K}$: $c_0 = \sqrt{1{,}4 \cdot 287 \cdot 288{,}15} \approx 340{,}3\,\text{m/s}$
+\[
+  Ma = \frac{v}{c(h)}
+\]
+\textbf{Wichtig:} Die Machzahl ändert sich mit der Höhe, weil $c(h)$ fällt!
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Rechenaufgaben}
+
+\begin{exercisebox}{1 — Temperatur und Dichte auf verschiedenen Höhen}
+Berechne $T$, $\rho$ und $c$ für die folgenden Höhen (Troposphäre):
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+$h$ (m) & $T(h)$ (K) & $\rho(h)$ (kg/m³) & $c(h)$ (m/s) \\
+\hline
+0       & 288{,}15   & 1{,}2250            & 340{,}3      \\
+\hline
+1\,000  & & & \\
+\hline
+5\,000  & & & \\
+\hline
+10\,000 & & & \\
+\hline
+11\,000 & & & \\
+\hline
+\end{tabular}
+\end{center}
+
+Formeln:
+$T(h) = 288{,}15 - 0{,}0065\cdot h$,\quad
+$\rho(h) = 1{,}225\cdot\left(\dfrac{T(h)}{288{,}15}\right)^{4{,}2561}$,\quad
+$c(h) = \sqrt{1{,}4 \cdot 287 \cdot T(h)}$
+\end{exercisebox}
+
+\begin{solutionspace}[7cm]
+\end{solutionspace}
+
+\begin{exercisebox}{2 — Hydrostatische DGL als ODE lösen}
+Die isotherme Stratosphäre ($T = T_{11} = 216{,}65\,\text{K}$, für $h \geq 11\,000\,\text{m}$) führt auf:
+\[
+  \frac{dp}{dh} = -\frac{g}{R_s\,T_{11}}\,p, \quad p(11000) = p_{11}
+\]
+\textbf{a)} Zeige, dass dies eine DGL der Form $\dot{y} = \lambda y$ ist. Was ist $\lambda$?\\[0.5em]
+\textbf{b)} Löse die DGL analytisch. Was für eine Funktion ist $p(h)$?\\[0.5em]
+\textbf{c)} Berechne $p$ bei $h = 15\,000\,\text{m}$ ($p_{11} = 22\,632\,\text{Pa}$, $\lambda \approx -1{,}577 \times 10^{-4}\,\text{m}^{-1}$):
+\[
+  p(15000) = \underline{\hspace{4cm}}\,\text{Pa}
+\]
+\end{exercisebox}
+
+\begin{solutionspace}[7cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Luftwiderstand auf verschiedenen Höhen}
+Eine Rakete fliegt mit $v = 500\,\text{m/s}$, $A = 10\,\text{m}^2$, $C_d = 0{,}3$.\\
+Berechne $F_\text{drag} = \frac{1}{2}\rho v^2 C_d A$ für:
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+$h$ (m) & $\rho(h)$ (kg/m³) & $F_\text{drag}$ (N) \\
+\hline
+0       & 1{,}225 & \\
+\hline
+5\,000  & & \\
+\hline
+10\,000 & & \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Frage:} Um welchen Faktor sinkt der Luftwiderstand von $h=0$ auf $h=10\,000\,\text{m}$?
+\end{exercisebox}
+
+\begin{solutionspace}[5cm]
+\end{solutionspace}
+
+\begin{exercisebox}{4 — Machzahl-abhängiger Drag-Koeffizient}
+In der 1D-Simulation haben wir benutzt:
+\[
+  C_d(Ma) = 0{,}3 + 0{,}5\cdot\exp\!\left(-\left(\frac{Ma - 1{,}0}{0{,}3}\right)^2\right)
+\]
+\textbf{a)} Bei welcher Machzahl ist $C_d$ am größten? Was ist der Maximalwert?\\[0.5em]
+\textbf{b)} Berechne $C_d$ für $Ma = 0{,}5$, $Ma = 1{,}0$, $Ma = 2{,}0$.\\[0.5em]
+\textbf{c)} Warum hat $C_d$ ein Maximum um $Ma = 1$? (Stichwort: Machzahl-Krise, Stosswellen)
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+% ─────────────────────────────────────────────
+\section{Verbindung zum Julia-Template}
+
+\begin{theorybox}{Was du jetzt implementierst}
+In \texttt{template.jl} (Kapitel 03) implementierst du:
+\begin{enumerate}
+  \item \texttt{isa\_temperature(h)} — Temperaturprofil (Troposphäre + untere Stratosphäre)
+  \item \texttt{isa\_pressure(h)} — Druckprofil
+  \item \texttt{isa\_density(h)} — Dichteprofil (über ideales Gasgesetz)
+  \item \texttt{speed\_of\_sound(h)} — Schallgeschwindigkeit
+  \item \texttt{drag\_coefficient(mach)} — Mach-abhängiger $C_d$
+  \item \texttt{aerodrag(h, v, A, Cd\_func)} — Luftwiderstandskraft
+  \item Plots: $T(h)$, $\rho(h)$, $c(h)$ über Höhe 0–20 km
+\end{enumerate}
+\end{theorybox}
+
+\end{document}

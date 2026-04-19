@@ -1,0 +1,107 @@
+\documentclass[12pt, a4paper]{article}
+\input{../preamble}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Kapitel 07: Wissenschaftliche Visualisierung}}\\[0.5em]
+  {\large \textcolor{hintgray}{2D- und 3D-Plots, Phasenraum, Interpretation}}\\[0.3em]
+  {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
+\end{center}
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+\section{Welche Plots braucht ein Ingenieur?}
+
+\begin{theorybox}{Pflicht-Plots für eine Raketensimulation}
+\begin{enumerate}
+  \item \textbf{Trajektorie}: $x$ vs. $y$ — Wo fliegt die Rakete?
+  \item \textbf{Zustandsgrößen}: $v(t)$, $h(t)$, $m(t)$ — Wie entwickelt sich der Zustand?
+  \item \textbf{Kräfte}: $F_T(t)$, $F_D(t)$, $F_g(t)$ — Was treibt die Rakete an, was bremst sie?
+  \item \textbf{Phasenraum}: $v_y$ vs. $h$ — Zeigt Energieübergänge und Orbitinsertion
+  \item \textbf{3D-Perspektive}: Trajektorie als 3D-Plot (auch wenn nur 2D simuliert)
+\end{enumerate}
+\end{theorybox}
+
+\section{Der Phasenraum}
+
+\begin{theorybox}{Was ist der Phasenraum?}
+Der \textbf{Phasenraum} einer ODE $\dot{\mathbf{s}} = f(\mathbf{s})$ ist der Raum aller möglichen Zustände. Ein Plot von $v_y$ vs. $h$ zeigt:
+\begin{itemize}
+  \item Wie sich Höhe und Geschwindigkeit gegenseitig beeinflussen
+  \item Wo Energie umgewandelt wird (potentiell $\leftrightarrow$ kinetisch)
+  \item Ob die Simulation sich einem Fixpunkt (Orbit) oder einem Grenzwert nähert
+\end{itemize}
+\end{theorybox}
+
+\section{Makie.jl für 3D-Visualisierung}
+
+\begin{theorybox}{Warum GLMakie?}
+\begin{itemize}
+  \item Interaktive 3D-Plots mit Rotation und Zoom
+  \item Animationen mit \texttt{@animate} oder \texttt{Observable}
+  \item Hochwertige Grafiken für Publikationen und Präsentationen
+\end{itemize}
+\texttt{Plots.jl} ist für statische 2D-Plots ideal; \texttt{GLMakie.jl} für 3D und Interaktivität.
+\end{theorybox}
+
+\section{Rechenaufgaben}
+
+\begin{exercisebox}{1 — Phasenraum interpretieren}
+Ein Plot von $v_y$ (y-Achse) vs. $h$ (x-Achse) zeigt zwei charakteristische Phasen:
+\begin{itemize}
+  \item Phase A: $h$ steigt, $v_y$ steigt
+  \item Phase B: $h$ steigt weiter, aber $v_y$ sinkt
+\end{itemize}
+\textbf{a)} Was passiert physikalisch in Phase A? (Triebwerk aktiv? Welche Kraft dominiert?)\\[0.5em]
+\textbf{b)} Was passiert in Phase B? Ist das Triebwerk noch an?\\[0.5em]
+\textbf{c)} Wann ist $v_y = 0$ bei maximalem $h$ (Apogäum)? Wo liegt dieser Punkt im Phasenraum?
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+\begin{exercisebox}{2 — Energiebilanz}
+Die spezifische mechanische Energie ist:
+\[
+  E(t) = \frac{1}{2}\left(v_x^2 + v_y^2\right) + g_0\,h
+\]
+(spezifisch = pro kg)\\[0.5em]
+\textbf{a)} Berechne $E(t=0)$ für eine Rakete die an der Startrampe steht.\\[0.5em]
+\textbf{b)} Für LEO gilt: $E_\text{LEO} \approx \frac{1}{2}v_\text{LEO}^2 + g\,h_\text{LEO}$ mit $v_\text{LEO}=7800\,\text{m/s}$, $h_\text{LEO}=400\,000\,\text{m}$.\\
+Berechne $E_\text{LEO}$ und interpretiere das Ergebnis.\\[0.5em]
+\textbf{c)} Das Triebwerk liefert die Leistung $P = T \cdot v$. Warum steigt die Effizienz mit der Geschwindigkeit? (Stichwort: Oberth-Effekt)
+\end{exercisebox}
+
+\begin{solutionspace}[7cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — 3D-Erweiterungsgedanke}
+Unsere Simulation ist 2D. Für eine echte 3D-Simulation bräuchten wir:
+\[
+  \mathbf{s} = [x, y, z, v_x, v_y, v_z, m]^\top \quad (7\text{-dimensional})
+\]
+\textbf{a)} Welche zusätzliche Kraft/Größe käme in 3D hinzu, die in 2D fehlt? (Stichwort: Coriolis, Azimut)\\[0.5em]
+\textbf{b)} Was ist der Unterschied zwischen einem \textbf{polare Orbit} (Inklinationswinkel $\approx 90°$) und einem \textbf{äquatorialen Orbit} ($0°$)?\\[0.5em]
+\textbf{c)} Warum starten die meisten Raketen möglichst nah am Äquator (z.B. Cape Canaveral)?\\
+\textit{Hinweis: Erdrotation!}
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+\section{Verbindung zum Julia-Template}
+
+\begin{theorybox}{Was du jetzt implementierst}
+In \texttt{template.jl} (Kapitel 07) erstellst du ein vollständiges Dashboard:
+\begin{enumerate}
+  \item \textbf{6-Panel Dashboard}: Trajektorie, $h(t)$, $v(t)$, $m(t)$, Kräfte, Phasenraum
+  \item \textbf{3D-Plot} mit \texttt{GLMakie}: Trajektorie als 3D-Kurve (z=0), rotierbar
+  \item \textbf{Animation}: Rakete bewegt sich entlang der Trajektorie
+  \item \textbf{Energie-Plot}: $E_\text{kin}(t)$, $E_\text{pot}(t)$, $E_\text{total}(t)$
+\end{enumerate}
+Das ist dein Showcase — der Plot den du jemandem zeigst.
+\end{theorybox}
+
+\end{document}

@@ -1,0 +1,175 @@
+\documentclass[12pt, a4paper]{article}
+\input{../preamble}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Kapitel 04: 2D-Physik der Rakete}}\\[0.5em]
+  {\large \textcolor{hintgray}{Kräfte, Koordinatensystem, Zustandsvektor und Bewegungsgleichungen}}\\[0.3em]
+  {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
+\end{center}
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+% ─────────────────────────────────────────────
+\section{Koordinatensystem}
+
+\begin{theorybox}{2D Inertialsystem}
+Wir verwenden ein \textbf{kartesisches Koordinatensystem} mit:
+\begin{itemize}
+  \item $x$: horizontale Distanz (Downrange), positiv = Richtung Zielorbit
+  \item $y$: Höhe über dem Boden, positiv = nach oben
+  \item $(0,\,0)$: Startrampe
+\end{itemize}
+Die Erde wird als flach angenommen (gültig für Reichweiten $\ll 6371\,\text{km}$).
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Zustandsvektor}
+
+\begin{theorybox}{5-dimensionaler Zustand}
+Der vollständige Zustand der Rakete zu einem Zeitpunkt $t$ ist:
+\[
+  \mathbf{s}(t) = \begin{pmatrix} x \\ y \\ v_x \\ v_y \\ m \end{pmatrix}
+\]
+\begin{itemize}
+  \item $x, y$: Position (m)
+  \item $v_x, v_y$: Geschwindigkeitskomponenten (m/s)
+  \item $m$: aktuelle Gesamtmasse (kg)
+\end{itemize}
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Kräfte}
+
+\subsection*{Schwerkraft}
+\[
+  \mathbf{F}_g = \begin{pmatrix} 0 \\ -m\,g(y) \end{pmatrix}, \quad g(y) = g_0\left(\frac{R_E}{R_E + y}\right)^2
+\]
+
+\subsection*{Schubkraft}
+Der Schubvektor zeigt in Richtung des Pitchwinkels $\theta$ (gemessen von der Horizontalen):
+\[
+  \mathbf{F}_T = T \begin{pmatrix} \cos\theta \\ \sin\theta \end{pmatrix}
+\]
+$\theta = 90°$ bedeutet senkrecht nach oben; $\theta = 0°$ bedeutet horizontal.
+
+\subsection*{Luftwiderstand}
+Der Drag wirkt \textbf{entgegen} dem Geschwindigkeitsvektor:
+\[
+  \mathbf{v} = \begin{pmatrix} v_x \\ v_y \end{pmatrix}, \quad
+  |\mathbf{v}| = \sqrt{v_x^2 + v_y^2}, \quad
+  \hat{\mathbf{v}} = \frac{\mathbf{v}}{|\mathbf{v}|}
+\]
+\[
+  \mathbf{F}_D = -\frac{1}{2}\rho(y)\,|\mathbf{v}|^2\,C_d(Ma)\,A\;\hat{\mathbf{v}}
+\]
+
+% ─────────────────────────────────────────────
+\section{Bewegungsgleichungen (ODE-System)}
+
+\begin{theorybox}{Das vollständige DGL-System}
+Newtons zweites Gesetz $\mathbf{F} = m\,\mathbf{a}$ liefert:
+\[
+\frac{d}{dt}\begin{pmatrix} x \\ y \\ v_x \\ v_y \\ m \end{pmatrix}
+=
+\begin{pmatrix}
+  v_x \\
+  v_y \\
+  \dfrac{T\cos\theta - F_D\,\frac{v_x}{|\mathbf{v}|}}{m} \\[1em]
+  \dfrac{T\sin\theta - F_D\,\frac{v_y}{|\mathbf{v}|} - m\,g(y)}{m} \\[1em]
+  -\dot{m}
+\end{pmatrix}
+\]
+\end{theorybox}
+
+\begin{theorybox}{Sonderfall: $|\mathbf{v}| = 0$}
+Wenn die Geschwindigkeit null ist, ist $\hat{\mathbf{v}}$ undefiniert. In diesem Fall ist $F_D = 0$. In der Implementierung: prüfe $|\mathbf{v}| < \varepsilon$ vor der Division.
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Rechenaufgaben}
+
+\begin{exercisebox}{1 — Kräftezerlegung bei gegebenem Pitchwinkel}
+Eine Rakete hat $T = 1\,400\,000\,\text{N}$, $\theta = 75°$, $m = 80\,000\,\text{kg}$.\\
+$v_x = 100\,\text{m/s}$, $v_y = 800\,\text{m/s}$, $h = 5\,000\,\text{m}$.\\
+$A = 10\,\text{m}^2$, $\rho(5000) \approx 0{,}7364\,\text{kg/m}^3$.
+
+\textbf{a)} Berechne $|\mathbf{v}|$ und $Ma$:
+\[
+  |\mathbf{v}| = \underline{\hspace{3cm}}\,\text{m/s}, \quad Ma = \underline{\hspace{3cm}}
+\]
+
+\textbf{b)} Berechne $F_D$ (mit $C_d(Ma)$ aus Kapitel 03):
+\[
+  C_d = \underline{\hspace{2cm}}, \quad F_D = \underline{\hspace{4cm}}\,\text{N}
+\]
+
+\textbf{c)} Berechne die Schubkomponenten:
+\[
+  F_{T,x} = T\cos(75°) = \underline{\hspace{4cm}}\,\text{N}
+\]
+\[
+  F_{T,y} = T\sin(75°) = \underline{\hspace{4cm}}\,\text{N}
+\]
+
+\textbf{d)} Berechne die Beschleunigungen $\dot{v}_x$ und $\dot{v}_y$:
+\[
+  \dot{v}_x = \frac{F_{T,x} - F_D\cdot\frac{v_x}{|\mathbf{v}|}}{m} = \underline{\hspace{4cm}}\,\text{m/s}^2
+\]
+\[
+  \dot{v}_y = \frac{F_{T,y} - F_D\cdot\frac{v_y}{|\mathbf{v}|}}{m} - g = \underline{\hspace{4cm}}\,\text{m/s}^2
+\]
+\end{exercisebox}
+
+\begin{solutionspace}[10cm]
+\end{solutionspace}
+
+\begin{exercisebox}{2 — Massenstrom und Schubberechnung}
+Die Raketengleichung verbindet Schub $T$, Massenfluss $\dot{m}$ und Ausströmgeschwindigkeit $v_e$:
+\[
+  T = \dot{m}\,v_e
+\]
+Gegeben: $T = 1\,400\,000\,\text{N}$, $v_e = 3\,200\,\text{m/s}$ (typischer Wert für RP-1/LOX).\\[0.5em]
+\textbf{a)} Berechne $\dot{m}$: \; $\dot{m} = \underline{\hspace{3cm}}\,\text{kg/s}$\\[0.5em]
+\textbf{b)} Wie viel Treibstoff wird in 150 Sekunden verbraucht? \; $\Delta m = \underline{\hspace{3cm}}\,\text{kg}$\\[0.5em]
+\textbf{c)} Eine Stage hat 30\,000 kg Treibstoff. Wie lange brennt sie?
+\end{exercisebox}
+
+\begin{solutionspace}[5cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Einen RK4-Schritt für das 2D-System}
+Anfangszustand: $\mathbf{s}_0 = [0,\; 0,\; 0,\; 0,\; 100\,000]^\top$\\
+Parameter: $T = 1\,400\,000\,\text{N}$, $\theta = 90°$, $\dot{m} = 437{,}5\,\text{kg/s}$, $A = 10\,\text{m}^2$, $h_\text{step} = 1\,\text{s}$\\[0.5em]
+Vereinfachung: Nutze $\rho(0) = 1{,}225$, $C_d = 0{,}3$, $g = 9{,}81\,\text{m/s}^2$ (konstant).\\[0.5em]
+\textbf{a)} Berechne $\mathbf{k}_1 = f(0, \mathbf{s}_0)$:
+\[
+  \mathbf{k}_1 = \begin{pmatrix} \dot{x} \\ \dot{y} \\ \dot{v}_x \\ \dot{v}_y \\ \dot{m} \end{pmatrix}
+  = \begin{pmatrix} 0 \\ 0 \\ \underline{\hspace{2cm}} \\ \underline{\hspace{2cm}} \\ \underline{\hspace{2cm}} \end{pmatrix}
+\]
+\textit{Hinweis: Bei $|\mathbf{v}|=0$ ist $F_D = 0$.}\\[0.5em]
+\textbf{b)} Berechne $\mathbf{s}^* = \mathbf{s}_0 + \frac{h}{2}\mathbf{k}_1$ (Zwischenpunkt für $k_2$).\\[0.5em]
+\textbf{c)} Wie ändert sich $\dot{v}_y$ wenn $\theta = 45°$ statt $90°$ ist?
+\end{exercisebox}
+
+\begin{solutionspace}[10cm]
+\end{solutionspace}
+
+% ─────────────────────────────────────────────
+\section{Verbindung zum Julia-Template}
+
+\begin{theorybox}{Was du jetzt implementierst}
+In \texttt{template.jl} (Kapitel 04) implementierst du:
+\begin{enumerate}
+  \item \texttt{gravity(y)} — höhenabhängige Schwerkraft
+  \item \texttt{derivatives\_2d(t, s, params)} — die rechte Seite des DGL-Systems\\
+        (gibt $[\dot{x}, \dot{y}, \dot{v}_x, \dot{v}_y, \dot{m}]$ zurück)
+  \item Eine einfache Simulation: senkrechter Start, $\theta = 90°$, 1 Stufe
+  \item Plot: Höhe, Geschwindigkeit, Beschleunigung über Zeit
+\end{enumerate}
+Die Funktion \texttt{derivatives\_2d} ist das Herzstück — sie wird von RK4 (Kapitel 02) aufgerufen.
+\end{theorybox}
+
+\end{document}

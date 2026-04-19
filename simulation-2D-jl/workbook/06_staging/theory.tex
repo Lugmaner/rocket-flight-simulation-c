@@ -1,0 +1,132 @@
+\documentclass[12pt, a4paper]{article}
+\input{../preamble}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Kapitel 06: Mehrstufige Raketen}}\\[0.5em]
+  {\large \textcolor{hintgray}{Stufentrennung, Tsiolkovsky und die Kunst des Massenmanagements}}\\[0.3em]
+  {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
+\end{center}
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+\section{Warum mehrere Stufen?}
+
+\begin{theorybox}{Das Massenproblem}
+Die Tsiolkovsky-Gleichung zeigt: Um $\Delta v$ zu maximieren, muss das Massenverhältnis $m_0/m_f$ groß sein. Aber ein Tank, der 90\% seines Gewichts als Treibstoff trägt, ist schwer zu bauen.\\[0.5em]
+\textbf{Lösung: Stufentrennung.} Leere Tanks werden abgeworfen, sodass nur nützliche Masse weiter beschleunigt wird.
+\end{theorybox}
+
+\begin{theorybox}{Massenverhältnis und Strukturkoeffizient}
+\[
+  \varepsilon = \frac{m_\text{dry}}{m_\text{stage}} = \frac{\text{Trockenmasse}}{\text{gesamte Stufenmasse}}
+\]
+Typische Werte: $\varepsilon \approx 0{,}05$--$0{,}15$ (5--15\% der Stufe ist Struktur).\\[0.5em]
+Nutzbares Massenverhältnis einer Stufe:
+\[
+  \frac{m_0}{m_f} = \frac{1}{\varepsilon}
+\]
+\end{theorybox}
+
+\section{Das DGL-System mit Stufentrennung}
+
+\begin{theorybox}{Diskontinuität im Massenfluss}
+Bei Stufentrennung zum Zeitpunkt $t^*$ springt die Masse diskontinuierlich:
+\[
+  m(t^{*+}) = m(t^{*-}) - m_\text{stage,dry}
+\]
+Das DGL-System ist für $t > t^*$ mit neuen Parametern (Schub, Massenstrom, Fläche) identisch aufgebaut — nur die Stufe wechselt.\\[0.5em]
+In der Implementierung: \textbf{Event detection} — prüfe nach jedem RK4-Schritt ob $m_\text{fuel} \leq 0$.
+\end{theorybox}
+
+\section{Rechenaufgaben}
+
+\begin{exercisebox}{1 — Zweistufige Rakete: Optimales Massenverhältnis}
+Eine zweistufige Rakete mit Gesamtstartmasse $M = 300\,000\,\text{kg}$, $v_e = 3200\,\text{m/s}$.\\
+Die Nutzlast (Payload) hat $m_\text{PL} = 10\,000\,\text{kg}$.\\
+Beide Stufen haben denselben Strukturkoeffizienten $\varepsilon = 0{,}08$.\\[0.5em]
+
+\textbf{a)} Wenn Stufe 1 die Masse $m_1$ und Stufe 2 die Masse $m_2$ hat mit $m_1 + m_2 + m_\text{PL} = M$:\\
+Zeige, dass das maximale $\Delta v_\text{total}$ erreicht wird wenn $m_1/m_2 = \text{const}$.\\[0.5em]
+
+\textbf{b)} Für $m_1 = 240\,000\,\text{kg}$, $m_2 = 50\,000\,\text{kg}$:\\
+\[
+  \Delta v_1 = v_e \ln\!\left(\frac{m_1}{m_1\cdot\varepsilon}\right) = \underline{\hspace{4cm}}\,\text{m/s}
+\]
+\[
+  \Delta v_2 = v_e \ln\!\left(\frac{m_2}{m_2\cdot\varepsilon}\right) = \underline{\hspace{4cm}}\,\text{m/s}
+\]
+\[
+  \Delta v_\text{total} = \underline{\hspace{4cm}}\,\text{m/s}
+\]
+
+\textbf{c)} Vergleiche mit einer einstufigen Rakete gleicher Masse. Was ist der Unterschied?
+\end{exercisebox}
+
+\begin{solutionspace}[8cm]
+\end{solutionspace}
+
+\begin{exercisebox}{2 — Zeitpunkt der Stufentrennung}
+Stufe 1: $m_\text{wet} = 240\,000\,\text{kg}$, $m_\text{dry} = 19\,200\,\text{kg}$, $\dot{m} = 2200\,\text{kg/s}$.\\[0.5em]
+\textbf{a)} Wie viel Treibstoff hat Stufe 1?
+\[
+  m_\text{fuel,1} = m_\text{wet,1} - m_\text{dry,1} = \underline{\hspace{4cm}}\,\text{kg}
+\]
+\textbf{b)} Wann (nach wieviel Sekunden nach Start) ist Stufe 1 leer?
+\[
+  t_\text{sep} = \frac{m_\text{fuel,1}}{\dot{m}_1} = \underline{\hspace{4cm}}\,\text{s}
+\]
+\textbf{c)} Die Gesamtmasse direkt vor Trennung (inkl. Stufe 2 + Payload):
+\[
+  m(t_\text{sep}^-) = \underline{\hspace{4cm}}\,\text{kg}
+\]
+\textbf{d)} Die Gesamtmasse direkt nach Trennung (Trockenmasse Stufe 1 abgeworfen):
+\[
+  m(t_\text{sep}^+) = \underline{\hspace{4cm}}\,\text{kg}
+\]
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Konzept: Warum nicht 3, 4, 5 Stufen?}
+\textbf{a)} Berechne $\Delta v_\text{total}$ für 1, 2, 3 gleiche Stufen mit je $\varepsilon = 0{,}08$, $v_e = 3200\,\text{m/s}$, gleiche Gesamtmasse.\\[0.5em]
+\textit{Hinweis: Bei $n$ gleichen Stufen gilt $\Delta v_\text{total} = n \cdot v_e \ln(1/\varepsilon)$.}
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+Stufen $n$ & $\Delta v_\text{total}$ (m/s) \\
+\hline
+1 & \\
+\hline
+2 & \\
+\hline
+3 & \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{b)} Warum nutzen reale Raketen selten mehr als 3 Stufen?\\
+(Denke an: Zuverlässigkeit, Komplexität, abnehmender Grenznutzen)
+\end{exercisebox}
+
+\begin{solutionspace}[6cm]
+\end{solutionspace}
+
+\section{Verbindung zum Julia-Template}
+
+\begin{theorybox}{Was du jetzt implementierst}
+In \texttt{template.jl} (Kapitel 06) implementierst du:
+\begin{enumerate}
+  \item \texttt{Stage}-Struct mit $(m_\text{wet}, m_\text{dry}, T, \dot{m}, A)$
+  \item Staging-Logik: nach jedem RK4-Schritt prüfen ob Stufe leer
+  \item Vollständige 2-stufige Simulation mit Gravity Turn
+  \item Plot: Masse vs. Zeit mit Markierung der Stufentrennung
+  \item Vergleich: $\Delta v_\text{ideal}$ (Tsiolkovsky) vs. $\Delta v_\text{simuliert}$
+\end{enumerate}
+\end{theorybox}
+
+\end{document}

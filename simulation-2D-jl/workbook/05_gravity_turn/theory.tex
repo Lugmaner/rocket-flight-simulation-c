@@ -1,0 +1,168 @@
+\documentclass[12pt, a4paper]{article}
+\input{../preamble}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Kapitel 05: Der Gravity Turn}}\\[0.5em]
+  {\large \textcolor{hintgray}{Wie Raketen ihren Pitchwinkel steuern und in einen Orbit gelangen}}\\[0.3em]
+  {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
+\end{center}
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+\section{Was ist ein Gravity Turn?}
+
+\begin{theorybox}{Grundprinzip}
+Beim \textbf{Gravity Turn} wird die Rakete nicht aktiv um eine Achse gesteuert. Stattdessen:
+\begin{enumerate}
+  \item Die Rakete startet \textbf{senkrecht} ($\theta = 90°$)
+  \item Nach einer kurzen Vertikalphase wird ein kleiner \textbf{Kick-Winkel} eingeleitet
+  \item Die Schwerkraft dreht den Geschwindigkeitsvektor langsam zur Horizontale
+  \item Der Schubvektor folgt dem Geschwindigkeitsvektor (minimaler Anstellwinkel)
+\end{enumerate}
+\textbf{Vorteil:} Minimaler aerodynamischer Stress. Die Rakete ``fällt'' in ihre Trajektorie.
+\end{theorybox}
+
+\section{Pitchwinkel-Strategien}
+
+\begin{theorybox}{Strategie 1: Lineares Pitchprogramm}
+\[
+\theta(t) =
+\begin{cases}
+  90° & t \leq t_\text{kick} \\
+  90° - \dfrac{90° - \theta_\text{end}}{t_\text{end} - t_\text{kick}}\,(t - t_\text{kick}) & t_\text{kick} < t \leq t_\text{end} \\
+  \theta_\text{end} & t > t_\text{end}
+\end{cases}
+\]
+Einfach, aber nicht optimal. Gut zum Lernen.
+\end{theorybox}
+
+\begin{theorybox}{Strategie 2: Velocity-Vector Tracking}
+Der Pitchwinkel folgt dem \textbf{Geschwindigkeitsvektor}:
+\[
+  \theta(t) = \arctan\!\left(\frac{v_y}{v_x}\right)
+\]
+Das ist der ``echte'' Gravity Turn — die Rakete richtet sich immer in Flugrichtung aus.
+\end{theorybox}
+
+\section{Die Tsiolkovsky-Raketengleichung}
+
+\begin{theorybox}{Ideales $\Delta v$}
+Ohne Schwerkraft und Drag gilt:
+\[
+  \Delta v = v_e \ln\!\left(\frac{m_0}{m_f}\right)
+\]
+$v_e$: effektive Ausströmgeschwindigkeit, $m_0$: Startmasse, $m_f$: Endmasse (nach Treibstoffverbrauch).\\
+Das ist eine \textbf{obere Schranke} für das erreichbare $\Delta v$ — Drag und Gravitationsverluste reduzieren es.
+\end{theorybox}
+
+\section{Rechenaufgaben}
+
+\begin{exercisebox}{1 — Tsiolkovsky-Gleichung}
+Gegeben: $m_0 = 100\,000\,\text{kg}$, $m_f = 10\,000\,\text{kg}$, $v_e = 3200\,\text{m/s}$.\\[0.5em]
+\textbf{a)} Berechne das ideale $\Delta v$:
+\[
+  \Delta v = 3200 \cdot \ln\!\left(\frac{100\,000}{10\,000}\right) = \underline{\hspace{4cm}}\,\text{m/s}
+\]
+\textbf{b)} Die erste kosmische Geschwindigkeit (LEO) beträgt $\approx 7\,800\,\text{m/s}$.\\
+Reicht eine Stufe? Was hemmt uns in der Praxis?\\[0.5em]
+\textbf{c)} Mit zwei gleichen Stufen (je $m_0 = 50\,000$, $m_f = 5\,000$, $v_e = 3200$):
+\[
+  \Delta v_\text{total} = \Delta v_1 + \Delta v_2 = \underline{\hspace{6cm}}\,\text{m/s}
+\]
+\end{exercisebox}
+
+\begin{solutionspace}[7cm]
+\end{solutionspace}
+
+\begin{exercisebox}{2 — Lineares Pitchprogramm berechnen}
+Parameter: $t_\text{kick} = 15\,\text{s}$, $\theta_\text{end} = 0°$, $t_\text{end} = 150\,\text{s}$.\\[0.5em]
+Berechne $\theta(t)$ für:
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+$t$ (s) & $\theta$ (°) \\
+\hline
+0   &  \\
+\hline
+15  &  \\
+\hline
+50  &  \\
+\hline
+80  &  \\
+\hline
+120 &  \\
+\hline
+150 &  \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Zeichne} die Kurve $\theta(t)$ skizzenhaft in das folgende Koordinatensystem:
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=5cm,
+  xlabel={$t$ (s)},
+  ylabel={$\theta$ (°)},
+  xmin=0, xmax=160,
+  ymin=-5, ymax=100,
+  grid=both,
+  grid style={line width=0.3pt, draw=gray!30},
+  major grid style={line width=0.6pt, draw=gray!60}
+]
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\end{exercisebox}
+
+\begin{solutionspace}[3cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Velocity-Vector Tracking}
+Eine Rakete hat $v_x = 800\,\text{m/s}$, $v_y = 200\,\text{m/s}$.\\[0.5em]
+\textbf{a)} Berechne den Pitchwinkel beim Velocity-Vector Tracking:
+\[
+  \theta = \arctan\!\left(\frac{v_y}{v_x}\right) = \arctan\!\left(\frac{200}{800}\right) = \underline{\hspace{3cm}}°
+\]
+\textbf{b)} Was bedeutet $\theta \approx 14°$? Beschreibe die Flugrichtung qualitativ.\\[0.5em]
+\textbf{c)} Bei welchem Verhältnis $v_y / v_x$ ist $\theta = 45°$?
+\end{exercisebox}
+
+\begin{solutionspace}[5cm]
+\end{solutionspace}
+
+\begin{exercisebox}{4 — Gravitationsverlust}
+Der ``Gravitationsverlust'' (gravity drag) ist:
+\[
+  \Delta v_\text{grav} = \int_0^{t_\text{MECO}} g(t)\,\sin\theta(t)\,dt
+\]
+\textbf{Näherung} für konstantes $g = 9{,}81$ und lineares Pitch von $90°$ auf $0°$ in $t = 150\,\text{s}$:\\[0.5em]
+\[
+  \Delta v_\text{grav} \approx g \int_0^{150} \sin\!\left(90° - \frac{90°}{150}\,t\right)\,dt
+\]
+\textbf{a)} Vereinfache das Integral analytisch (Substitution oder direkt).\\[0.5em]
+\textbf{b)} Berechne das Ergebnis numerisch (Trapezregel mit 3 Stützstellen: $t = 0, 75, 150$).
+\end{exercisebox}
+
+\begin{solutionspace}[8cm]
+\end{solutionspace}
+
+\section{Verbindung zum Julia-Template}
+
+\begin{theorybox}{Was du jetzt implementierst}
+In \texttt{template.jl} (Kapitel 05) implementierst du:
+\begin{enumerate}
+  \item \texttt{pitch\_linear(t, params)} — lineares Pitchprogramm
+  \item \texttt{pitch\_velocity\_tracking(t, s)} — Velocity-Vector Tracking
+  \item Vollständige 2D-Simulation mit beiden Pitch-Strategien
+  \item \textbf{Trajektorie-Plot}: $x$ vs.\ $y$ (Downrange vs.\ Höhe)
+  \item Vergleich: Wie viel Downrange-Distanz bei gleicher Treibstoffmenge?
+\end{enumerate}
+\end{theorybox}
+
+\end{document}

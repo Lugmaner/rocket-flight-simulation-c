@@ -1,0 +1,179 @@
+\documentclass[12pt, a4paper]{article}
+\input{../preamble}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Kapitel 02: Runge-Kutta 4. Ordnung (RK4)}}\\[0.5em]
+  {\large \textcolor{hintgray}{Warum Euler nicht reicht — und wie man es besser macht}}\\[0.3em]
+  {\small \textcolor{hintgray}{Rocket Science Workbook — simulation-2D-jl}}
+\end{center}
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+% ─────────────────────────────────────────────
+\section{Motivation: Euler ist erster Ordnung}
+
+\begin{theorybox}{Das Problem mit Euler}
+Der Euler-Schritt entspricht dem ersten Glied der Taylor-Reihe von $y(t+h)$:
+\[
+  y(t+h) = y(t) + h\,\dot{y}(t) + \underbrace{\frac{h^2}{2}\ddot{y}(t) + \cdots}_{\text{Euler ignoriert das!}}
+\]
+Der \textbf{lokale Fehler} ist $\mathcal{O}(h^2)$ — der abgeschnittene Term.\\
+Nach $N = T/h$ Schritten akkumuliert sich ein \textbf{globaler Fehler} von $\mathcal{O}(h)$.
+
+\textbf{Ziel:} Wir wollen ein Verfahren, das mehr Taylor-Glieder nutzt, ohne höhere Ableitungen $\ddot{y}, \dddot{y}$ explizit berechnen zu müssen.
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Die Idee: Mehrere Steigungen mitteln}
+
+\begin{theorybox}{Grundprinzip von Runge-Kutta}
+Statt nur die Steigung am Anfang des Schritts zu nehmen, berechnen wir \textbf{mehrere Steigungen} an verschiedenen Punkten innerhalb des Intervalls $[t_n,\, t_n+h]$ und bilden einen gewichteten Mittelwert.
+\end{theorybox}
+
+\subsection*{Die vier Steigungen von RK4}
+
+\begin{theorybox}{RK4-Formel}
+\[
+  k_1 = f(t_n,\; y_n)
+\]
+\[
+  k_2 = f\!\left(t_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_1\right)
+\]
+\[
+  k_3 = f\!\left(t_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_2\right)
+\]
+\[
+  k_4 = f\!\left(t_n + h,\; y_n + h\,k_3\right)
+\]
+\[
+  \boxed{y_{n+1} = y_n + \frac{h}{6}\left(k_1 + 2k_2 + 2k_3 + k_4\right)}
+\]
+\end{theorybox}
+
+\subsection*{Intuition hinter den Gewichten}
+\begin{itemize}
+  \item $k_1$: Steigung am \textbf{Anfang} des Schritts
+  \item $k_2$: Steigung in der \textbf{Mitte}, ausgehend von $k_1$
+  \item $k_3$: Steigung in der \textbf{Mitte}, ausgehend von $k_2$ (verfeinert)
+  \item $k_4$: Steigung am \textbf{Ende}, ausgehend von $k_3$
+  \item Gewichtung: $1:2:2:1$ — Mittelpunkte sind wichtiger (Simpsonregel!)
+\end{itemize}
+
+\begin{theorybox}{Fehlerordnung von RK4}
+\begin{itemize}
+  \item \textbf{Lokaler Fehler:} $\mathcal{O}(h^5)$
+  \item \textbf{Globaler Fehler:} $\mathcal{O}(h^4)$
+\end{itemize}
+RK4 ist ein Verfahren \textbf{vierter Ordnung}. Halbiert man $h$, fällt der Fehler auf $1/16$ seines Wertes!
+\end{theorybox}
+
+% ─────────────────────────────────────────────
+\section{Rechenaufgaben}
+
+\begin{exercisebox}{1 — RK4 von Hand: ein Schritt}
+Gegeben: $\dfrac{dy}{dt} = -y$, $y(0) = 1$, $h = 0{,}5$.\\[0.5em]
+Berechne \textbf{einen RK4-Schritt} und bestimme $y_1$.
+
+Fülle schrittweise aus:
+
+\begin{align*}
+k_1 &= f(0{,}0,\; 1{,}0000) = \underline{\hspace{3cm}}\\[0.5em]
+k_2 &= f\!\left(0{,}25,\; 1{,}0 + 0{,}25 \cdot k_1\right) = \underline{\hspace{3cm}}\\[0.5em]
+k_3 &= f\!\left(0{,}25,\; 1{,}0 + 0{,}25 \cdot k_2\right) = \underline{\hspace{3cm}}\\[0.5em]
+k_4 &= f\!\left(0{,}5,\; 1{,}0 + 0{,}5 \cdot k_3\right) = \underline{\hspace{3cm}}\\[1em]
+y_1 &= 1{,}0 + \frac{0{,}5}{6}(k_1 + 2k_2 + 2k_3 + k_4) = \underline{\hspace{3cm}}
+\end{align*}
+
+Exakter Wert: $y(0{,}5) = e^{-0{,}5} \approx 0{,}60653$\\
+Euler-Wert (aus Kapitel 01): $0{,}5$\\[0.5em]
+\textbf{Fehler RK4:} \underline{\hspace{2cm}} \quad \textbf{Fehler Euler:} \underline{\hspace{2cm}}
+\end{exercisebox}
+
+\begin{solutionspace}[8cm]
+\end{solutionspace}
+
+\begin{exercisebox}{2 — Fehlerordnung experimentell bestätigen}
+Berechne den Fehler bei $t=1{,}0$ für verschiedene Schrittweiten (mit Taschenrechner oder von Hand für $h=0{,}5$):
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+$h$ & $y_N^{\text{RK4}}$ bei $t=1$ & $e^{-1} \approx 0{,}36788$ & Fehler & Verhältnis zum vorh. \\
+\hline
+1{,}0  & & & & — \\
+\hline
+0{,}5  & & & & \\
+\hline
+0{,}25 & & & & \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Erwartung:} Das Verhältnis aufeinanderfolgender Fehler sollte $\approx 16$ sein (da $2^4 = 16$).\\
+Was beobachtest du?
+\end{exercisebox}
+
+\begin{solutionspace}[5cm]
+\end{solutionspace}
+
+\begin{exercisebox}{3 — Freier Fall mit RK4}
+Wiederhole die Freifall-Simulation aus Kapitel 01 (Aufgabe 3) mit RK4 und $h = 1{,}0\,\text{s}$.
+
+Zustand: $\mathbf{y} = [h, v]^\top$, $f(\mathbf{y}) = [v, -g]$
+
+Berechne \textbf{einen vollständigen RK4-Schritt}:
+
+\begin{align*}
+\mathbf{k}_1 &= f(0,\; [100, 0]) = \underline{\hspace{5cm}}\\[0.5em]
+\mathbf{k}_2 &= f(0{,}5,\; [100, 0] + 0{,}5 \cdot \mathbf{k}_1) = \underline{\hspace{5cm}}\\[0.5em]
+\mathbf{k}_3 &= f(0{,}5,\; [100, 0] + 0{,}5 \cdot \mathbf{k}_2) = \underline{\hspace{5cm}}\\[0.5em]
+\mathbf{k}_4 &= f(1{,}0,\; [100, 0] + 1{,}0 \cdot \mathbf{k}_3) = \underline{\hspace{5cm}}\\[1em]
+\mathbf{y}_1 &= [100, 0] + \frac{1}{6}(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4) = \underline{\hspace{5cm}}
+\end{align*}
+
+Exakt bei $t=1$: $h = 100 - \frac{1}{2}\cdot 9{,}81 = 95{,}095\,\text{m}$, $v = -9{,}81\,\text{m/s}$
+\end{exercisebox}
+
+\begin{solutionspace}[9cm]
+\end{solutionspace}
+
+\begin{exercisebox}{4 — Konzept: Das Butcher-Tableau}
+RK4 lässt sich kompakt als \textbf{Butcher-Tableau} schreiben:
+
+\[
+\begin{array}{c|cccc}
+0   &    &    &    &   \\
+1/2 & 1/2 &   &    &   \\
+1/2 & 0  & 1/2 &   &   \\
+1   & 0  & 0  & 1  &   \\
+\hline
+    & 1/6 & 2/6 & 2/6 & 1/6
+\end{array}
+\]
+
+\textbf{a)} Identifiziere in den Zeilen die Zwischenpunkte $(c_i, a_{ij})$ und in der letzten Zeile die Gewichte $b_i$.\\[0.5em]
+\textbf{b)} Wie viele Funktionsauswertungen $f(\cdot)$ benötigt RK4 pro Schritt?\\[0.5em]
+\textbf{c)} Euler hat nur eine Auswertung. Wie viele hätte RK2 (Mittelpunktsregel)?
+\end{exercisebox}
+
+\begin{solutionspace}[5cm]
+\end{solutionspace}
+
+% ─────────────────────────────────────────────
+\section{Verbindung zum Julia-Template}
+
+\begin{theorybox}{Was du jetzt implementierst}
+In \texttt{template.jl} (Kapitel 02) implementierst du:
+\begin{enumerate}
+  \item \texttt{rk4\_step(f, t, y, h)} — einen einzelnen RK4-Schritt (k1 bis k4)
+  \item \texttt{rk4\_solve(f, y0, t0, t\_end, h)} — vollständige RK4-Integration
+  \item Vergleich Euler vs.\ RK4: Fehlerplot auf log-Skala
+  \item Beides für das Vektor-System (Freifall)
+\end{enumerate}
+\textbf{Wichtig:} Die Funktion \texttt{rk4\_step} muss mit Vektoren \textit{und} skalaren Zuständen funktionieren — nutze Julias Broadcasting.
+\end{theorybox}
+
+\end{document}
