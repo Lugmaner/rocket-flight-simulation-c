@@ -1,164 +1,170 @@
 # Rocket Science Workbook — 2D Simulation in Julia
 
-## Ablaufplan
+## How to use this workbook
 
-Arbeite die Kapitel **in Reihenfolge** ab. Jedes Kapitel baut auf dem vorherigen auf.
+Work through the chapters **in order**. Each chapter builds on the previous one.
+
+For every chapter:
+1. Compile the PDF (`make all` in `workbook/`)
+2. Read the theory section
+3. Solve all exercises **on paper** before touching the keyboard
+4. Open `template.jl` and implement the TODO sections
+5. Run the checks at the bottom — all should pass
 
 ---
 
-### Kapitel 01 — Euler-Verfahren
+### Chapter 01 — Euler Method
 **PDF:** `workbook/01_euler/theory.pdf`
 **Template:** `workbook/01_euler/template.jl`
 
-Was du lernst: Was eine ODE ist, geometrische Interpretation, Fehlerordnung O(h).
+What you learn: What an ODE is, geometric interpretation, global error order O(h).
 
-Rechenaufgaben (auf Papier):
-- [ ] Aufgabe 1: Euler 5 Schritte für dy/dt = -y von Hand
-- [ ] Aufgabe 2: Fehlervergleich h=0.2 vs h=0.5
-- [ ] Aufgabe 3: Freier Fall als 2D-Zustandsvektor
-- [ ] Aufgabe 4: Stabilitätsanalyse
+Paper exercises:
+- [ ] Exercise 1: Euler 5 steps for dy/dt = -y by hand
+- [ ] Exercise 2: Error comparison h=0.2 vs h=0.5
+- [ ] Exercise 3: Free fall as a 2D state vector
+- [ ] Exercise 4: Stability analysis
 
-Implementierung:
-- [ ] `euler_step` funktioniert
-- [ ] `euler_solve` funktioniert
-- [ ] Alle Checks grün
+Implementation:
+- [ ] `euler_step` works
+- [ ] `euler_solve` works
+- [ ] All checks pass
 
 ---
 
-### Kapitel 02 — Runge-Kutta 4 (RK4)
+### Chapter 02 — Runge-Kutta 4 (RK4)
 **PDF:** `workbook/02_rk4/theory.pdf`
 **Template:** `workbook/02_rk4/template.jl`
 
-Was du lernst: k1-k4 Herleitung, Fehlerordnung O(h^4), Butcher-Tableau.
+What you learn: k1–k4 derivation, error order O(h^4), Butcher tableau.
 
-Rechenaufgaben:
-- [ ] Aufgabe 1: RK4 einen Schritt von Hand (k1 bis k4)
-- [ ] Aufgabe 2: Fehlerordnungstabelle ausfüllen
-- [ ] Aufgabe 3: Freier Fall mit RK4 (Vektor-System)
-- [ ] Aufgabe 4: Butcher-Tableau lesen
+Paper exercises:
+- [ ] Exercise 1: One full RK4 step by hand (k1 through k4)
+- [ ] Exercise 2: Fill in the error order table
+- [ ] Exercise 3: Free fall with RK4 (vector system)
+- [ ] Exercise 4: Read and interpret the Butcher tableau
 
-Implementierung:
-- [ ] `rk4_step` für Skalare und Vektoren
-- [ ] `rk4_solve` vollständig
-- [ ] Fehlerplot zeigt Euler O(h) vs RK4 O(h^4) auf Log-Skala
+Implementation:
+- [ ] `rk4_step` works for scalars and vectors
+- [ ] `rk4_solve` complete
+- [ ] Error plot shows Euler O(h) vs RK4 O(h^4) on log scale
 
 ---
 
-### Kapitel 03 — ISA-Atmosphäre
+### Chapter 03 — ISA Atmosphere
 **PDF:** `workbook/03_atmosphere/theory.pdf`
 **Template:** `workbook/03_atmosphere/template.jl`
 
-Was du lernst: Hydrostatische Gleichung als DGL, ISA-Schichten, Schallgeschwindigkeit.
+What you learn: Hydrostatic equation as an ODE, ISA layers, speed of sound.
 
-Rechenaufgaben:
-- [ ] Aufgabe 1: T, rho, c für 5 Höhen berechnen
-- [ ] Aufgabe 2: Isotherme Stratosphäre: DGL analytisch lösen
-- [ ] Aufgabe 3: F_drag auf 3 Höhen vergleichen
-- [ ] Aufgabe 4: Cd(Ma) Maximum bestimmen
+Paper exercises:
+- [ ] Exercise 1: Compute T, rho, c for 5 altitudes
+- [ ] Exercise 2: Solve the isothermal stratosphere ODE analytically
+- [ ] Exercise 3: Compare F_drag at 3 altitudes
+- [ ] Exercise 4: Find the maximum of Cd(Ma)
 
-Implementierung:
+Implementation:
 - [ ] `isa_temperature`, `isa_pressure`, `isa_density`
 - [ ] `speed_of_sound`, `drag_coefficient`, `aerodrag`
-- [ ] Alle 4 Atmosphärenplots korrekt
-- [ ] Alle Checks grün
+- [ ] All 4 atmosphere plots look correct
+- [ ] All checks pass
 
 ---
 
-### Kapitel 04 — 2D-Physik
+### Chapter 04 — 2D Physics
 **PDF:** `workbook/04_physics_2d/theory.pdf`
 **Template:** `workbook/04_physics_2d/template.jl`
 
-Was du lernst: Kräftezerlegung in 2D, Zustandsvektor, Newton als ODE-System.
+What you learn: Force decomposition in 2D, state vector, Newton as an ODE system.
 
-Rechenaufgaben:
-- [ ] Aufgabe 1: Kräfte bei theta=75° vollständig berechnen
-- [ ] Aufgabe 2: Massenstrom und Brenndauer
-- [ ] Aufgabe 3: Einen RK4-Schritt für das 5D-System
+Paper exercises:
+- [ ] Exercise 1: Compute all forces at theta=75° step by step
+- [ ] Exercise 2: Mass flow rate and burn duration
+- [ ] Exercise 3: One full RK4 step on the 5D system by hand
 
-Implementierung:
-- [ ] `gravity(y)` mit Höhenabhängigkeit
-- [ ] `derivatives_2d(t, s, params)` vollständig
-- [ ] Senkrechter Start plottet korrekt
-- [ ] Alle Checks grün
+Implementation:
+- [ ] `gravity(y)` with altitude dependence
+- [ ] `derivatives_2d(t, s, params)` complete
+- [ ] Vertical launch plots correctly
+- [ ] All checks pass
 
 ---
 
-### Kapitel 05 — Gravity Turn
+### Chapter 05 — Gravity Turn
 **PDF:** `workbook/05_gravity_turn/theory.pdf`
 **Template:** `workbook/05_gravity_turn/template.jl`
 
-Was du lernst: Pitchprogramm, Velocity Tracking, Tsiolkovsky, Gravitationsverluste.
+What you learn: Pitch program, velocity vector tracking, Tsiolkovsky equation, gravity losses.
 
-Rechenaufgaben:
-- [ ] Aufgabe 1: Tsiolkovsky 1-stufig und 2-stufig
-- [ ] Aufgabe 2: Lineares Pitchprogramm tabellarisch + zeichnen
-- [ ] Aufgabe 3: Velocity Tracking Winkel berechnen
-- [ ] Aufgabe 4: Gravitationsverlust-Integral (Trapezregel)
+Paper exercises:
+- [ ] Exercise 1: Tsiolkovsky for 1-stage and 2-stage rocket
+- [ ] Exercise 2: Linear pitch program — table and sketch
+- [ ] Exercise 3: Velocity tracking angle calculation
+- [ ] Exercise 4: Gravity loss integral (trapezoidal rule)
 
-Implementierung:
-- [ ] `pitch_linear` korrekt
-- [ ] `pitch_velocity_tracking` korrekt
-- [ ] Vergleichs-Trajektorie zeigt Unterschied beider Strategien
+Implementation:
+- [ ] `pitch_linear` correct
+- [ ] `pitch_velocity_tracking` correct
+- [ ] Comparison trajectory shows difference between both strategies
 
 ---
 
-### Kapitel 06 — Stufentrennung
+### Chapter 06 — Multi-Stage Separation
 **PDF:** `workbook/06_staging/theory.pdf`
 **Template:** `workbook/06_staging/template.jl`
 
-Was du lernst: Strukturkoeffizient, mehrstufige Raketengleichung, Event Detection.
+What you learn: Structural coefficient, multi-stage rocket equation, event detection.
 
-Rechenaufgaben:
-- [ ] Aufgabe 1: Optimales Massenverhältnis, Delta-v berechnen
-- [ ] Aufgabe 2: Trennzeitpunkt und Massensprung
-- [ ] Aufgabe 3: 1 vs 2 vs 3 Stufen vergleichen
+Paper exercises:
+- [ ] Exercise 1: Optimal mass ratio, delta-v calculation
+- [ ] Exercise 2: Separation time and mass discontinuity
+- [ ] Exercise 3: Compare 1 vs 2 vs 3 stages
 
-Implementierung:
-- [ ] `Stage`-Struct definiert
-- [ ] `simulate_multistage` mit Staging-Logik
-- [ ] Massenplot zeigt Sprung bei Stufentrennung
-- [ ] Tsiolkovsky vs Simulation Vergleich in Terminal
+Implementation:
+- [ ] `Stage` struct defined
+- [ ] `simulate_multistage` with staging logic
+- [ ] Mass plot shows jump at stage separation
+- [ ] Tsiolkovsky vs simulation comparison printed in terminal
 
 ---
 
-### Kapitel 07 — Visualisierung
+### Chapter 07 — Visualization
 **PDF:** `workbook/07_visualization/theory.pdf`
 **Template:** `workbook/07_visualization/template.jl`
 
-Was du lernst: Phasenraum, Energiebilanz, 3D-Plots, Animation.
+What you learn: Phase space, energy budget, 3D plots, animation.
 
-Rechenaufgaben:
-- [ ] Aufgabe 1: Phasenraum Phase A/B interpretieren
-- [ ] Aufgabe 2: LEO-Energie berechnen, Oberth-Effekt
-- [ ] Aufgabe 3: 3D-Erweiterung konzeptuell durchdenken
+Paper exercises:
+- [ ] Exercise 1: Interpret phase space phases A and B
+- [ ] Exercise 2: Compute LEO energy, understand Oberth effect
+- [ ] Exercise 3: Think through what a 3D extension would require
 
-Implementierung:
-- [ ] `plot_dashboard` — alle 6 Panels korrekt
-- [ ] GLMakie installiert: `] add GLMakie`
-- [ ] 3D-Plot rotierbar
-- [ ] Animation erstellt (`rocket_flight.gif`)
+Implementation:
+- [ ] `plot_dashboard` — all 6 panels correct
+- [ ] GLMakie installed: `] add GLMakie`
+- [ ] 3D plot is rotatable
+- [ ] Animation saved (`rocket_flight.gif`)
 
 ---
 
-## PDFs kompilieren
+## Compile PDFs
 
 ```bash
 cd workbook
-make all        # kompiliert alle 7 PDFs
-make 01_euler/theory.pdf   # einzelnes Kapitel
-make clean      # löscht Hilfsdateien
+make all                       # compile all 7 PDFs
+make 01_euler/theory.pdf       # single chapter
+make clean                     # remove auxiliary files
 ```
 
-Benötigt: `pdflatex` (TeX Live oder MiKTeX)
+Requires: `pdflatex` (TeX Live or MiKTeX)
 
-## Julia starten
+## Run Julia templates
 
-```julia
-# Im simulation-2D-jl Verzeichnis:
+```bash
 julia --project=. workbook/01_euler/template.jl
 ```
 
-Oder in REPL:
+Or from the REPL:
 ```julia
 julia> ]activate .
 julia> include("workbook/01_euler/template.jl")
